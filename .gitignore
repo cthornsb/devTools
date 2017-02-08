@@ -1,0 +1,9 @@
+# CMake directories #
+#####################
+*.o
+build/
+install/
+
+# Data Files #
+##############
+*.ldf
