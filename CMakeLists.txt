@@ -71,3 +71,6 @@ set(TOP_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 include_directories(include)
 add_subdirectory(source)
+
+#Build/install the miscellaneous stuff
+add_subdirectory(share)
