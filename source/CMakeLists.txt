@@ -10,3 +10,10 @@ if(${BUILD_LDF_FIXER})
 	target_link_libraries(ldfFixer optionHandlerStatic)
 	install(TARGETS ldfFixer DESTINATION bin)
 endif()
+
+if(${BUILD_HEX_READER})
+	#Build hexReader executable.
+	add_executable(hexReader hexReader.cpp)
+	target_link_libraries(hexReader optionHandlerStatic)
+	install(TARGETS hexReader DESTINATION bin)
+endif()
