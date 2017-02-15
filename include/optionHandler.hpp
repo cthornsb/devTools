@@ -1,7 +1,31 @@
 #ifndef OPTIONHANDLER_HPP
 #define OPTIONHANDLER_HPP
 
-#include <ScanInterface.hpp>
+#include <string>
+#include <vector>
+#include <getopt.h>
+
+class optionExt{
+  public:
+	const char* name;
+	int has_arg;
+	int *flag;
+	int val;
+  
+  	std::string argstr; /// The argument syntax for the command line option.
+	std::string helpstr; /// The help & syntax string to print when -h is passed.
+	std::string argument; /// The argument received from getopt_long (if available).
+	bool active; /// Set to true if this option was selected by the user.
+	
+	optionExt() : has_arg(0), flag(0), val(0), active(false) { }
+	
+	optionExt(const char *name_, const int &has_arg_, int *flag_, const int &val_, const std::string &arg_, const std::string &help_);
+	
+	/// Print a help string for this option.
+	void print(const size_t &len_=0, const std::string &prefix_="");
+	
+	option getOption();
+};
 
 class optionHandler{
   public:

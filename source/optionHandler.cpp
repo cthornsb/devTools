@@ -1,7 +1,42 @@
 #include <iostream>
+#include <sstream>
 #include <string.h>
 
 #include "optionHandler.hpp"
+
+/////////////////////////////////////////////////////////////////////
+// class optionExt
+/////////////////////////////////////////////////////////////////////
+
+optionExt::optionExt(const char *name_, const int &has_arg_, int *flag_, const int &val_, const std::string &argstr_, const std::string &helpstr_) : 
+  name(name_), has_arg(has_arg_), flag(flag_), val(val_), argstr(argstr_), helpstr(helpstr_), active(false) {
+}
+
+void optionExt::print(const size_t &len_/*=0*/, const std::string &prefix_/*=""*/){
+	std::stringstream stream;
+	stream << prefix_ << "--" << name << " ";
+	if(val) stream << "(-" << (char)val << ") ";
+	stream << argstr;
+	
+	if(stream.str().length() < len_)
+		stream << std::string(len_ - stream.str().length(), ' ');
+	
+	stream << "- " << helpstr;
+	std::cout << stream.str() << std::endl;
+}
+
+option optionExt::getOption(){
+	struct option output;
+	output.name = name;
+	output.has_arg = has_arg;
+	output.flag = flag;
+	output.val = val;
+	return output;
+}
+
+/////////////////////////////////////////////////////////////////////
+// class optionHandler
+/////////////////////////////////////////////////////////////////////
 
 optionHandler::optionHandler(){
 	baseOpts.push_back(optionExt("help", no_argument, NULL, 'h', "", "Display this dialogue"));
