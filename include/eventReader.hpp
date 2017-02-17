@@ -140,6 +140,7 @@ class readerScanner : public ScanInterface {
 	bool init; /// Set to true when the initialization process successfully completes.
 	bool showFlags;
 	bool showTrace;
+	bool showNextEvent;
 	
 	unsigned int numSkip;
 	unsigned int eventsRead;

@@ -56,7 +56,7 @@ void readerUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-readerScanner::readerScanner() : ScanInterface(), init(false), showFlags(false), showTrace(false), numSkip(0), eventsRead(0) {
+readerScanner::readerScanner() : ScanInterface(), init(false), showFlags(false), showTrace(false), showNextEvent(false), numSkip(0), eventsRead(0) {
 }
 
 /// Destructor.
@@ -74,21 +74,19 @@ readerScanner::~readerScanner(){
   * \return True if the command was recognized and false otherwise.
   */
 bool readerScanner::ExtraCommands(const std::string &cmd_, std::vector<std::string> &args_){
-	if(cmd_ == "skip"){
-		if(args_.size() >= 1){ // Do something with the argument.
-			numSkip = strtoul(args_.at(0).c_str(), NULL, 0);
-			std::cout << msgHeader << "Skipping " << numSkip << " events.\n";
-		}
-		else {
-			std::cout << msgHeader << "Invalid number of parameters to 'skip'\n";
-			std::cout << msgHeader << " -SYNTAX- skip <numEvents>\n";
-		}
-	}
-	else if(cmd_ == "flags"){
+	if(cmd_ == "flags"){
 		showFlags = !showFlags;
 	}
 	else if(cmd_ == "trace"){
 		showTrace = !showTrace;
+	}
+	else if(cmd_ == "next"){
+		if(args_.size() >= 1){ // Skip the specified number of events.
+			showNextEvent = true;
+			numSkip = strtoul(args_.at(0).c_str(), NULL, 0);
+			std::cout << msgHeader << "Skipping " << numSkip << " events.\n";
+		}
+		else{ showNextEvent = true; }
 	}
 	else{ return false; } // Unrecognized command.
 
@@ -202,11 +200,17 @@ bool readerScanner::AddEvent(XiaData *event_){
 	//GetQdc() - vector<unsigned int>
 	//GetTrace() - vector<unsigned int>
 
+	while(!showNextEvent){
+		if(!core->IsRunning()) return false;
+		sleep(1);
+	}
+
 	if(numSkip == 0){
 		std::cout << "*************************************************\n";
 		std::cout << "** Raw Event no. " << eventsRead << std::endl;
 		std::cout << "*************************************************\n";
-		std::cout << " Filter Energy: " << event_->GetEnergy() << std::endl;
+		
+		/*std::cout << " Filter Energy: " << event_->GetEnergy() << std::endl;
 		std::cout << " Trigger Time:  " << (unsigned long long)event_->GetTime() << std::endl;
 		std::cout << " Crate:         " << event_->GetCrateNumber() << std::endl;
 		std::cout << " Slot:          " << event_->GetSlotNumber() << std::endl;
@@ -231,18 +235,45 @@ bool readerScanner::AddEvent(XiaData *event_){
 				if(++numLine % 10 == 0) std::cout << "\n  ";
 			}
 			std::cout << std::endl;
+		}*/
+		
+		std::cout << " Filter Energy: " << event_->energy << std::endl;
+		std::cout << " Trigger Time:  " << (unsigned long long)event_->time << std::endl;
+		std::cout << " Crate:         " << event_->crateNum << std::endl;
+		std::cout << " Slot:          " << event_->slotNum << std::endl;
+		std::cout << " Module:        " << event_->modNum << std::endl;
+		std::cout << " Channel:       " << event_->chanNum << std::endl;
+		std::cout << " CFD Time:      " << event_->cfdTime << std::endl;
+		std::cout << " Trace Length:  " << event_->traceLength << std::endl;
+
+		if(showFlags){
+			displayBool(" Virtual:       ", event_->virtualChannel);
+			displayBool(" Pileup:        ", event_->pileupBit);
+			displayBool(" Saturated:     ", event_->saturatedBit);
+			displayBool(" CFD Force:     ", event_->cfdForceTrig);
+			displayBool(" CFD Trig:      ", event_->cfdTrigSource);
+		}
+
+		if(showTrace && event_->traceLength != 0){
+			int numLine = 0;
+			std::cout << " Trace:\n  ";
+			for(size_t i = 0; i < event_->traceLength; i++){
+				std::cout << event_->adcTrace[i] << "\t";
+				if(++numLine % 10 == 0) std::cout << "\n  ";
+			}
+			std::cout << std::endl;
 		}
     	
     		std::cout << std::endl;
     	
-		sleep(1);
+		showNextEvent = false;
 	}
 	else{ numSkip--; }
-
+	
 	eventsRead++;
 	delete event_;
 	
-	return false;
+	return true;
 }
 
 /** Process all channel events read in from the rawEvent.
