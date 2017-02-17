@@ -49,6 +49,7 @@ endif(CMAKE_BUILD_TYPE MATCHES "Debug")
 
 #Install options
 option(BUILD_EVENT_READER "Build and install raw XiaData event reader." OFF)
+option(BUILD_HIS_2ROOT "Build and install his to root converter program." OFF)
 option(BUILD_LDF_FIXER "Build and install ldf buffer repair program." ON)
 option(BUILD_HEX_READER "Build and install hexadecimal reader program." ON)
 
@@ -62,13 +63,15 @@ if (BUILD_EVENT_READER)
 	find_package (PAASS REQUIRED)
 	include_directories(${PAASS_INCLUDE_DIR})
 	link_directories(${PAASS_LIBRARY_DIR})
+endif (BUILD_EVENT_READER)
 
+if (BUILD_EVENT_READER OR BUILD_HIS_2ROOT)
 	#Find ROOT install.
 	find_package (ROOT REQUIRED)
 	mark_as_advanced(FORCE GENREFLEX_EXECUTABLE ROOTCINT_EXECUTABLE ROOT_CONFIG_EXECUTABLE)
 	include_directories(${ROOT_INCLUDE_DIR})
 	link_directories(${ROOT_LIBRARY_DIR})
-endif (BUILD_EVENT_READER)
+endif (BUILD_EVENT_READER OR BUILD_HIS_2ROOT)
 
 set(TOP_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 

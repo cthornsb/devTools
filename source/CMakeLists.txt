@@ -23,3 +23,17 @@ if(${BUILD_EVENT_READER})
 	target_link_libraries(eventReader Scan ${ROOT_LIBRARIES})
 	install(TARGETS eventReader DESTINATION bin)
 endif()
+
+if(${BUILD_HIS_2ROOT})
+	add_library(hisFileStatic STATIC hisFile.cpp)
+
+	#Build his2root executable.
+	add_executable(his2root hisFile.cpp his2root.cpp)
+	target_link_libraries(his2root hisFileStatic optionHandlerStatic ${ROOT_LIBRARIES})
+
+	#Build hisReader executable.
+	add_executable(hisReader hisFile.cpp hisReader.cpp)
+	target_link_libraries(hisReader hisFileStatic optionHandlerStatic ${ROOT_LIBRARIES})
+
+	install(TARGETS his2root hisReader DESTINATION bin)
+endif()
