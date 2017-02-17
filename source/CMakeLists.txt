@@ -16,3 +16,10 @@ if(${BUILD_HEX_READER})
 	target_link_libraries(hexReader optionHandlerStatic)
 	install(TARGETS hexReader DESTINATION bin)
 endif()
+
+if(${BUILD_EVENT_READER})
+	#Build eventReader executable.
+	add_executable(eventReader eventReader.cpp)
+	target_link_libraries(eventReader Scan ${ROOT_LIBRARIES})
+	install(TARGETS eventReader DESTINATION bin)
+endif()

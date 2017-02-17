@@ -48,6 +48,7 @@ endif(CMAKE_BUILD_TYPE MATCHES "Debug")
 #------------------------------------------------------------------------------
 
 #Install options
+option(BUILD_EVENT_READER "Build and install raw XiaData event reader." ON)
 option(BUILD_LDF_FIXER "Build and install ldf buffer repair program." ON)
 option(BUILD_HEX_READER "Build and install hexadecimal reader program." ON)
 
