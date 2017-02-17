@@ -10,6 +10,13 @@ if(${BUILD_LDF_FIXER})
 	install(TARGETS ldfFixer DESTINATION bin)
 endif()
 
+if(${BUILD_HEADITOR})
+	#Build headitor executable.
+	add_executable(headitor headitor.cpp)
+	target_link_libraries(headitor optionHandlerStatic)
+	install(TARGETS headitor DESTINATION bin)
+endif()
+
 if(${BUILD_HEX_READER})
 	#Build hexReader executable.
 	add_executable(hexReader hexReader.cpp)
