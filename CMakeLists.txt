@@ -48,7 +48,7 @@ endif(CMAKE_BUILD_TYPE MATCHES "Debug")
 #------------------------------------------------------------------------------
 
 #Install options
-option(BUILD_EVENT_READER "Build and install raw XiaData event reader." ON)
+option(BUILD_EVENT_READER "Build and install raw XiaData event reader." OFF)
 option(BUILD_LDF_FIXER "Build and install ldf buffer repair program." ON)
 option(BUILD_HEX_READER "Build and install hexadecimal reader program." ON)
 
@@ -57,16 +57,18 @@ option(BUILD_HEX_READER "Build and install hexadecimal reader program." ON)
 #Find required packages.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-#Find paass install.
-find_package (PAASS REQUIRED)
-include_directories(${PAASS_INCLUDE_DIR})
-link_directories(${PAASS_LIBRARY_DIR})
+if (BUILD_EVENT_READER)
+	#Find paass install.
+	find_package (PAASS REQUIRED)
+	include_directories(${PAASS_INCLUDE_DIR})
+	link_directories(${PAASS_LIBRARY_DIR})
 
-#Find ROOT install.
-find_package (ROOT REQUIRED)
-mark_as_advanced(FORCE GENREFLEX_EXECUTABLE ROOTCINT_EXECUTABLE ROOT_CONFIG_EXECUTABLE)
-include_directories(${ROOT_INCLUDE_DIR})
-link_directories(${ROOT_LIBRARY_DIR})
+	#Find ROOT install.
+	find_package (ROOT REQUIRED)
+	mark_as_advanced(FORCE GENREFLEX_EXECUTABLE ROOTCINT_EXECUTABLE ROOT_CONFIG_EXECUTABLE)
+	include_directories(${ROOT_INCLUDE_DIR})
+	link_directories(${ROOT_LIBRARY_DIR})
+endif (BUILD_EVENT_READER)
 
 set(TOP_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
