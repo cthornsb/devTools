@@ -24,8 +24,8 @@
 #define ENDFILE 541478725 // End of file buffer
 #define ENDBUFF -1 // End of buffer marker
 
-int buffer_select = 0;
-int search_int = 0;
+unsigned int buffer_select = 0;
+unsigned int search_int = 0;
 bool show_raw = false;
 bool convert = false;
 bool show_zero = true;
@@ -223,7 +223,7 @@ int main(int argc, char *argv[]){
 	std::streampos foffset = 0;
 	
 	if(handler.getOption(1)->active){
-		buffer_select = strtol(handler.getOption(1)->argument.c_str(), NULL, 0);
+		buffer_select = strtoul(handler.getOption(1)->argument.c_str(), NULL, 0);
 		std::cout << " Displaying only buffer type " << convert_to_hex(buffer_select) << "\n";		
 	}
 	if(handler.getOption(2)->active){
@@ -234,7 +234,7 @@ int main(int argc, char *argv[]){
 	}
 	if(handler.getOption(4)->active){
 		do_search = true; 
-		search_int = strtol(handler.getOption(4)->argument.c_str(), NULL, 0);
+		search_int = strtoul(handler.getOption(4)->argument.c_str(), NULL, 0);
 		std::cout << " Searching for " << search_int << " (" << convert_to_hex(search_int) << ")\n";
 	}
 	if(handler.getOption(6)->active){
