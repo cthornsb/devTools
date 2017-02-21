@@ -143,18 +143,19 @@ class readerScanner : public ScanInterface {
 	bool init; /// Set to true when the initialization process successfully completes.
 	bool showFlags;
 	bool showTrace;
-	bool drawTrace;
 	bool showNextEvent;
 	
 	unsigned int numSkip;
 	unsigned int eventsRead;
+
+	XiaData *currentEvent;
 
 	TCanvas *canvas;
 	TGraph *graph;
 
 	void init_graphics();
 
-	void draw_current_trace(XiaData *event_);
+	void draw_current_trace();
 };
 
 #endif

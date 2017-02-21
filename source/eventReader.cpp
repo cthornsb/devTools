@@ -62,9 +62,10 @@ void readerUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-readerScanner::readerScanner() : ScanInterface(), init(false), showFlags(false), showTrace(false), drawTrace(false), showNextEvent(false), numSkip(0), eventsRead(0) {
+readerScanner::readerScanner() : ScanInterface(), init(false), showFlags(false), showTrace(false), showNextEvent(false), numSkip(0), eventsRead(0) {
 	canvas = NULL;
 	graph = new TGraph(1);
+	currentEvent = new XiaData();
 }
 
 /// Destructor.
@@ -77,6 +78,7 @@ readerScanner::~readerScanner(){
 		delete canvas;
 	}
 	delete graph;
+	delete currentEvent;
 }
 
 /** ExtraCommands is used to send command strings to classes derived
@@ -94,7 +96,7 @@ bool readerScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		showTrace = !showTrace;
 	}
 	else if(cmd_ == "draw"){
-		drawTrace = !drawTrace;
+		draw_current_trace();
 	}
 	else if(cmd_ == "next"){
 		if(args_.size() >= 1){ // Skip the specified number of events.
@@ -273,17 +275,14 @@ bool readerScanner::AddEvent(XiaData *event_){
 			displayBool(" CFD Trig:      ", event_->cfdTrigSource);
 		}
 
-		if(event_->traceLength != 0){
-			if(showTrace){
-				int numLine = 0;
-				std::cout << " Trace:\n  ";
-				for(size_t i = 0; i < event_->traceLength; i++){
-					std::cout << event_->adcTrace[i] << "\t";
-					if(++numLine % 10 == 0) std::cout << "\n  ";
-				}
-				std::cout << std::endl;
+		if(event_->traceLength != 0 && showTrace){
+			int numLine = 0;
+			std::cout << " Trace:\n  ";
+			for(size_t i = 0; i < event_->traceLength; i++){
+				std::cout << event_->adcTrace[i] << "\t";
+				if(++numLine % 10 == 0) std::cout << "\n  ";
 			}
-			if(drawTrace) draw_current_trace(event_);
+			std::cout << std::endl;
 		}
     	
     		std::cout << std::endl;
@@ -293,7 +292,8 @@ bool readerScanner::AddEvent(XiaData *event_){
 	else{ numSkip--; }
 	
 	eventsRead++;
-	delete event_;
+	delete currentEvent;
+	currentEvent = event_;
 	
 	return true;
 }
@@ -312,17 +312,18 @@ void readerScanner::init_graphics(){
 	canvas = new TCanvas("canvas", "eventReader");
 }
 
-void readerScanner::draw_current_trace(XiaData *event_){
-	if(event_->traceLength != (unsigned int)graph->GetN()){
-		std::cout << msgHeader << "Changing trace length from " << graph->GetN() << " to " << event_->traceLength << ".\n";
+void readerScanner::draw_current_trace(){
+	if(currentEvent->traceLength == 0) return;
+	else if(currentEvent->traceLength != (unsigned int)graph->GetN()){
+		std::cout << msgHeader << "Changing trace length from " << graph->GetN() << " to " << currentEvent->traceLength << ".\n";
 		delete graph;
-		graph = new TGraph(event_->traceLength);
+		graph = new TGraph(currentEvent->traceLength);
 		graph->SetMarkerStyle(kFullDotSmall);
 		graph->SetTitle("adcTrace");
 		graph->GetXaxis()->SetTitle("Time (ns)");
 	}
-	for(size_t i = 0; i < event_->traceLength; i++){
-		graph->SetPoint(i, i*4, event_->adcTrace[i]);
+	for(size_t i = 0; i < currentEvent->traceLength; i++){
+		graph->SetPoint(i, i*4, currentEvent->adcTrace[i]);
 	}
 	if(!canvas) init_graphics();
 	canvas->cd();
