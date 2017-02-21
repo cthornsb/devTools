@@ -481,14 +481,14 @@ int main(int argc, char *argv[]){
 
 	std::string dict_dir = "./";
 	if(handler.getOption(1)->active){
-		dict_dir = handler.getOption(0)->argument;
+		dict_dir = handler.getOption(1)->argument;
 	}	
 	
 	if(verbose) std::cout << " " << argv[0] << ": Generating root data structure file... ";
 
 	StructureFile sfile;
 	if(!sfile.Open(dict_dir+"/Structures.h", dict_dir+"/Structures.cpp", dict_dir+"/LinkDef.h")){ 
-		if(verbose) std::cout << "failed\n  ERROR: Failed to open one of the output files!\n";
+		if(verbose) std::cout << "failed\n  ERROR: Failed to open output files in directory \"" << dict_dir << "\"!\n";
 		return 3;
 	}
 	else if(!sfile.Process(ifname)){
