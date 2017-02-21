@@ -9,6 +9,12 @@
 // Local files
 #include "eventReader.hpp"
 
+// Root
+#include "TApplication.h"
+#include "TCanvas.h"
+#include "TGraph.h"
+#include "TAxis.h"
+
 // Define the name of the program.
 #ifndef PROG_NAME
 #define PROG_NAME "EventReader"
@@ -56,14 +62,21 @@ void readerUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-readerScanner::readerScanner() : ScanInterface(), init(false), showFlags(false), showTrace(false), showNextEvent(false), numSkip(0), eventsRead(0) {
+readerScanner::readerScanner() : ScanInterface(), init(false), showFlags(false), showTrace(false), drawTrace(false), showNextEvent(false), numSkip(0), eventsRead(0) {
+	canvas = NULL;
+	graph = new TGraph(1);
 }
 
 /// Destructor.
 readerScanner::~readerScanner(){
-	if(init){
-		// Handle some cleanup.
+	if(init){ // Handle some cleanup.
 	}
+
+	if(canvas){
+		canvas->Close();
+		delete canvas;
+	}
+	delete graph;
 }
 
 /** ExtraCommands is used to send command strings to classes derived
@@ -79,6 +92,9 @@ bool readerScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 	}
 	else if(cmd_ == "trace"){
 		showTrace = !showTrace;
+	}
+	else if(cmd_ == "draw"){
+		drawTrace = !drawTrace;
 	}
 	else if(cmd_ == "next"){
 		if(args_.size() >= 1){ // Skip the specified number of events.
@@ -121,6 +137,7 @@ void readerScanner::ExtraArguments(){
 void readerScanner::CmdHelp(const std::string &prefix_/*=""*/){
 	std::cout << "   flags               - Display channel flags.\n";
 	std::cout << "   trace               - Print adc trace values.\n";
+	std::cout << "   draw                - Draw the adc trace to the screen.\n";
 	std::cout << "   next [N=0]          - Skip N events and display the next one.\n";
 }
 
@@ -256,14 +273,17 @@ bool readerScanner::AddEvent(XiaData *event_){
 			displayBool(" CFD Trig:      ", event_->cfdTrigSource);
 		}
 
-		if(showTrace && event_->traceLength != 0){
-			int numLine = 0;
-			std::cout << " Trace:\n  ";
-			for(size_t i = 0; i < event_->traceLength; i++){
-				std::cout << event_->adcTrace[i] << "\t";
-				if(++numLine % 10 == 0) std::cout << "\n  ";
+		if(event_->traceLength != 0){
+			if(showTrace){
+				int numLine = 0;
+				std::cout << " Trace:\n  ";
+				for(size_t i = 0; i < event_->traceLength; i++){
+					std::cout << event_->adcTrace[i] << "\t";
+					if(++numLine % 10 == 0) std::cout << "\n  ";
+				}
+				std::cout << std::endl;
 			}
-			std::cout << std::endl;
+			if(drawTrace) draw_current_trace(event_);
 		}
     	
     		std::cout << std::endl;
@@ -280,14 +300,44 @@ bool readerScanner::AddEvent(XiaData *event_){
 
 /** Process all channel events read in from the rawEvent.
   * This method should only be called from readerUnpacker::ProcessRawEvent().
-  * \return False.
+  * \return True.
   */
 bool readerScanner::ProcessEvents(){
 	// Process all of the events added so far.
-	return false;
+	return true;
+}
+
+void readerScanner::init_graphics(){
+	std::cout << msgHeader << "Initializing root graphics.\n";
+	canvas = new TCanvas("canvas", "eventReader");
+}
+
+void readerScanner::draw_current_trace(XiaData *event_){
+	if(event_->traceLength != (unsigned int)graph->GetN()){
+		std::cout << msgHeader << "Changing trace length from " << graph->GetN() << " to " << event_->traceLength << ".\n";
+		delete graph;
+		graph = new TGraph(event_->traceLength);
+		graph->SetMarkerStyle(kFullDotSmall);
+		graph->SetTitle("adcTrace");
+		graph->GetXaxis()->SetTitle("Time (ns)");
+	}
+	for(size_t i = 0; i < event_->traceLength; i++){
+		graph->SetPoint(i, i*4, event_->adcTrace[i]);
+	}
+	if(!canvas) init_graphics();
+	canvas->cd();
+	graph->Draw("AP");
+	canvas->Update();
 }
 
 int main(int argc, char *argv[]){
+	// Initialize root graphics
+	TApplication *rootapp = new TApplication("rootapp", 0, NULL);
+
+	// This is done to keep the compiler from complaining about
+	// unused TApplication variable.
+	rootapp->SetBit(0, false);
+
 	// Define a new unpacker object.
 	readerScanner scanner;
 	

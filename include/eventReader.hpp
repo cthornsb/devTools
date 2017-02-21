@@ -6,6 +6,9 @@
 #include "Unpacker.hpp"
 #include "ScanInterface.hpp"
 
+class TCanvas;
+class TGraph;
+
 ///////////////////////////////////////////////////////////////////////////////
 // class readerUnpacker
 ///////////////////////////////////////////////////////////////////////////////
@@ -140,10 +143,18 @@ class readerScanner : public ScanInterface {
 	bool init; /// Set to true when the initialization process successfully completes.
 	bool showFlags;
 	bool showTrace;
+	bool drawTrace;
 	bool showNextEvent;
 	
 	unsigned int numSkip;
 	unsigned int eventsRead;
+
+	TCanvas *canvas;
+	TGraph *graph;
+
+	void init_graphics();
+
+	void draw_current_trace(XiaData *event_);
 };
 
 #endif
