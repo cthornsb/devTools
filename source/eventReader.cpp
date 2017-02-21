@@ -119,7 +119,9 @@ void readerScanner::ExtraArguments(){
   * \return Nothing.
   */
 void readerScanner::CmdHelp(const std::string &prefix_/*=""*/){
-	std::cout << "   skip <N> - Skip the next N events.\n";
+	std::cout << "   flags               - Display channel flags.\n";
+	std::cout << "   trace               - Print adc trace values.\n";
+	std::cout << "   next [N=0]          - Skip N events and display the next one.\n";
 }
 
 /** ArgHelp is used to allow a derived class to add a command line option
