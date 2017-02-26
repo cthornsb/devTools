@@ -83,6 +83,8 @@ void go(std::ifstream *input_, unsigned int &buff_count, unsigned int &good_buff
 	int show_next = 0;
 	unsigned int count = 0;
 	unsigned int word_count = 0;
+	unsigned int words_per_line = 10;
+	if(convert) words_per_line = 5;
 
 	T word;
 
@@ -168,7 +170,7 @@ void go(std::ifstream *input_, unsigned int &buff_count, unsigned int &good_buff
 		word_count++;
 		if(show_raw){
 			if(count == 0){ std::cout << "\n0000  "; }
-			else if(count % 10 == 0){ 
+			else if(count % words_per_line == 0){ 
 				std::stringstream stream; stream << count;
 				std::string temp_string = stream.str();
 				std::string padding = "";
@@ -180,7 +182,7 @@ void go(std::ifstream *input_, unsigned int &buff_count, unsigned int &good_buff
 				std::cout << "\n" << padding << temp_string << "  "; 
 			}
 			std::cout << convert_to_hex(word) << "  "; count++;
-			if(convert){ std::cout << convert_to_ascii(word) << "  "; count++; }
+			if(convert){ std::cout << convert_to_ascii(word) << "  "; }
 		}
 	}
 }
