@@ -42,30 +42,39 @@ std::string csubstr(char *str_, unsigned int start_index_=0){
 	return output;
 }
 
+bool is_alpha_numeric(const char &input_){
+	if((input_ >= 0x30 && input_ <= 0x39) || (input_ >= 0x41 && input_ <= 0x5a) || (input_ >= 0x61 && input_ <= 0x7a)) return true;
+	return false;
+}
+
 template <typename T>
-std::string convert_to_hex(T input_, bool to_text_=false){
-    std::bitset<sizeof(T)*8> set(input_);  
-    std::stringstream stream;
-    if(!to_text_){ stream << std::hex << std::uppercase << set.to_ulong(); }
-    else{ stream << std::uppercase << set.to_ulong(); }
-    std::string output = stream.str();
-    if(!to_text_ && output.size() < sizeof(T)*2){
-    	std::string temp = "0x";
-    	for(unsigned int i = output.size(); i < sizeof(T)*2; i++){
-    		temp += '0';
-    	}
-    	return temp + output;
-    }
-    else if(to_text_ && output.size() < (sizeof(T)+1)*2){
-    	std::string temp = "";
-    	for(unsigned int i = output.size(); i < (sizeof(T)+1)*2; i++){
-    		temp += ' ';
-    	}
-    	return temp + output;
-    }
-    
-    if(!to_text_){ return "0x" + output; }
-    return output;
+std::string convert_to_ascii(T input_){
+	char *output = new char[sizeof(T)+1];
+
+	memcpy(output, (char*)&input_, sizeof(T));
+	for(size_t i = 0; i < sizeof(T); i++){
+		if(!is_alpha_numeric(output[i])) output[i] = 0x20;	
+	}
+	output[sizeof(T)] = '\0';
+	
+	return std::string(output);
+}
+
+template <typename T>
+std::string convert_to_hex(T input_){
+	std::bitset<sizeof(T)*8> set(input_);  
+	std::stringstream stream;
+	stream << std::hex << std::uppercase << set.to_ulong();
+	std::string output = stream.str();
+	if(output.size() < sizeof(T)*2){
+		std::string temp = "0x";
+		for(unsigned int i = output.size(); i < sizeof(T)*2; i++){
+			temp += '0';
+		}
+		return temp + output;
+	}
+
+	return "0x" + output;
 }
 
 template <typename T>
@@ -93,13 +102,13 @@ void go(std::ifstream *input_, unsigned int &buff_count, unsigned int &good_buff
 		if(do_search){
 			if(show_next > 0){
 				std::cout << convert_to_hex(word) << "  ";
-				if(convert){ std::cout << convert_to_hex(word, true) << "  "; }
+				if(convert){ std::cout << convert_to_ascii(word) << "  "; }
 				show_next = show_next - 1;
 				if(show_next <= 0){ std::cout << std::endl; }
 			}		
 			else if(word == search_int){
 				std::cout << convert_to_hex(word) << "  ";
-				if(convert){ std::cout << convert_to_hex(word, true) << "  "; }
+				if(convert){ std::cout << convert_to_ascii(word) << "  "; }
 				show_next = 4;
 			}
 			total_count++;
@@ -171,7 +180,7 @@ void go(std::ifstream *input_, unsigned int &buff_count, unsigned int &good_buff
 				std::cout << "\n" << padding << temp_string << "  "; 
 			}
 			std::cout << convert_to_hex(word) << "  "; count++;
-			if(convert){ std::cout << convert_to_hex(word, true) << "  "; count++; }
+			if(convert){ std::cout << convert_to_ascii(word) << "  "; count++; }
 		}
 	}
 }
