@@ -1,1 +1,1 @@
-install(FILES rootdict.sh DESTINATION bin)
+install(PROGRAMS rootdict.sh DESTINATION bin)
