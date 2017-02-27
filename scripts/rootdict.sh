@@ -13,7 +13,7 @@ DICT_PREFIX="RootDict"
 declare CLEAN_UP=0
 
 # Check for passed arguments
-while getopts 'hi:n:' flag; do
+while getopts 'hi:n:c' flag; do
   case "${flag}" in
     h) echo " SYNTAX:" ;
        echo "  ./rcbuild.sh <options>" ;
