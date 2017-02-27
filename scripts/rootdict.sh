@@ -40,6 +40,7 @@ BUILDER_EXE=rcbuild
 DICT_SOURCE=${DICT_PREFIX}.cpp
 DICT_OBJ=${DICT_PREFIX}.o
 DICT_SHARED=lib${DICT_PREFIX}.so
+DICT_STATIC=lib${DICT_PREFIX}.a
 DICT_PCM_FILE=${DICT_PREFIX}_rdict.pcm
 
 # Check for rcbuild
@@ -104,8 +105,9 @@ fi
 echo "done"
 
 # Generate the root shared library (.so) for the dictionary
-echo -n " [5/5] Building root shared library file... "
+echo -n " [5/5] Building root libraries... "
 g++ -g -shared -Wl,-soname,$DICT_SHARED -o $DICT_SHARED $STRUCT_OBJ $DICT_OBJ -lc
+ar rcs $DICT_STATIC $STRUCT_OBJ $DICT_OBJ
 RETVAL=$?
 
 # Check that g++ exited successfully
