@@ -266,6 +266,8 @@ bool readerScanner::AddEvent(XiaData *event_){
 		
 		std::cout << " Filter Energy: " << event_->energy << std::endl;
 		std::cout << " Trigger Time:  " << (unsigned long long)event_->time << std::endl;
+		std::cout << " Event Time Lo: " << event_->eventTimeLo << std::endl;
+		std::cout << " Event Time Hi: " << event_->eventTimeHi << std::endl;
 		std::cout << " Crate:         " << event_->crateNum << std::endl;
 		std::cout << " Slot:          " << event_->slotNum << std::endl;
 		std::cout << " Module:        " << event_->modNum << std::endl;
