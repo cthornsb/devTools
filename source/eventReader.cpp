@@ -20,6 +20,8 @@
 #define PROG_NAME "EventReader"
 #endif
 
+unsigned int rawEventsRead = 0;
+
 void displayBool(const char *msg_, const bool &val_){
 	if(val_) std::cout << msg_ << "YES\n";
 	else std::cout << msg_ << "NO\n";
@@ -55,6 +57,9 @@ void readerUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 	
 	// Finish up with this raw event.
 	addr_->ProcessEvents();
+
+	// Increment the number of raw events processed so far.
+	rawEventsRead++;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -98,7 +103,7 @@ bool readerScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 	else if(cmd_ == "draw"){
 		draw_current_trace();
 	}
-	else if(cmd_ == "next"){
+	else if(cmd_ == "next" || cmd_ == "n"){
 		if(args_.size() >= 1){ // Skip the specified number of events.
 			showNextEvent = true;
 			numSkip = strtoul(args_.at(0).c_str(), NULL, 0);
@@ -140,7 +145,7 @@ void readerScanner::CmdHelp(const std::string &prefix_/*=""*/){
 	std::cout << "   flags               - Display channel flags.\n";
 	std::cout << "   trace               - Print adc trace values.\n";
 	std::cout << "   draw                - Draw the adc trace to the screen.\n";
-	std::cout << "   next [N=0]          - Skip N events and display the next one.\n";
+	std::cout << "   next (n) [N=0]      - Skip N events and display the next one.\n";
 }
 
 /** ArgHelp is used to allow a derived class to add a command line option
@@ -228,7 +233,8 @@ bool readerScanner::AddEvent(XiaData *event_){
 
 	if(numSkip == 0){
 		std::cout << "*************************************************\n";
-		std::cout << "** Raw Event no. " << eventsRead << std::endl;
+		std::cout << "** Channel Event no. " << eventsRead << std::endl;
+		std::cout << "**  Raw Event no. " << rawEventsRead << std::endl;
 		std::cout << "*************************************************\n";
 		
 		/*std::cout << " Filter Energy: " << event_->GetEnergy() << std::endl;
