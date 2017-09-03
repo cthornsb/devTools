@@ -25,6 +25,8 @@ void displayBool(const char *msg_, const bool &val_){
 typedef std::chrono::high_resolution_clock::time_point hr_time;
 typedef std::chrono::high_resolution_clock hr_clock;
 
+const double fwhmCoeff = 2*std::sqrt(2*std::log(2));
+
 ///////////////////////////////////////////////////////////////////////////////
 // class ChanPair
 ///////////////////////////////////////////////////////////////////////////////
@@ -355,8 +357,8 @@ void timingScanner::ProcessTimeDifferences(){
 		stddev += std::pow(*iter-mean, 2.0);
 	}
 	stddev = std::sqrt(stddev/(nGood-1));
-	std::cout << msgHeader << " Mean Tdiff = " << mean << std::endl;
-	std::cout << msgHeader << " Std. Dev. = " << stddev << std::endl;
+	std::cout << msgHeader << " Mean Tdiff = " << mean << " ns\n";
+	std::cout << msgHeader << " Std. Dev. = " << stddev << " ns (" << fwhmCoeff*stddev << " ns fwhm)\n";
 }
 
 void timingScanner::ClearAll(){
