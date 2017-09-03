@@ -61,7 +61,7 @@ bool ChanPair::Analyze(double &tdiff, timingAnalyzer analyzer/*=POLY*/, const fl
 	timeTaken = time_span.count();
 	
 	// Calculate the time difference.
-	tdiff = (start->time*8 + start->phase*4) - (stop->time*8 + stop->phase*4);
+	tdiff = (stop->time*8 + stop->phase*4) - (start->time*8 + start->phase*4);
 
 	// Check the validity of the output.
 	if(start->phase < 0 || stop->phase < 0) return false;
@@ -403,7 +403,7 @@ bool timingScanner::Write(const char *fname/*="timing.dat"*/){
 		if(start->phase < 0 || stop->phase < 0) continue;
 
 		// Write the output.
-		ofile << (unsigned long long)start->time << "\t" << (unsigned long long)stop->time << "\t" << start->phase << "\t" << stop->phase << "\t" << start->max_ADC << "\t" << stop->max_ADC << "\t" << ((start->time-stop->time)*8+(start->phase-stop->phase)*4) << std::endl;
+		ofile << (unsigned long long)start->time << "\t" << (unsigned long long)stop->time << "\t" << start->phase << "\t" << stop->phase << "\t" << start->max_ADC << "\t" << stop->max_ADC << "\t" << ((stop->time-start->time)*8+(stop->phase-start->phase)*4) << std::endl;
 	}
 	ofile.close();
 	return true;
