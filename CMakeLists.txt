@@ -49,6 +49,7 @@ endif(CMAKE_BUILD_TYPE MATCHES "Debug")
 
 #Install options
 option(EVENT_READER "Build and install raw XiaData event reader." OFF)
+option(TIMING_ANALYZER "Build and install high-res timing analyzer." OFF)
 option(LDF_FIXER "Build and install ldf buffer repair program." OFF)
 option(HEX_READER "Build and install hexadecimal reader program." ON)
 option(RCBUILD "Build and install root dict source file generator." OFF)
