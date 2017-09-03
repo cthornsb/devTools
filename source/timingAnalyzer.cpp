@@ -28,8 +28,6 @@ void displayBool(const char *msg_, const bool &val_){
 ///////////////////////////////////////////////////////////////////////////////
 
 ChanPair::~ChanPair(){
-	//delete start;
-	//delete stop;
 }
 
 double ChanPair::Analyze(timingAnalyzer analyzer/*=POLY*/, const float &par1_/*=0.5*/, const float &par2_/*=1*/, const float &par3_/*=1*/){
@@ -90,11 +88,12 @@ void timingUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-timingScanner::timingScanner() : ScanInterface(), timingMethod(0), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1) {
+timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), analyzer(POLY) {
 }
 
 /// Destructor.
 timingScanner::~timingScanner(){
+	ClearAll();
 }
 
 /** ExtraCommands is used to send command strings to classes derived
@@ -108,7 +107,7 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 	if(cmd_ == "analyze"){
 		tdiffs.clear();
 		for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
-			tdiffs.push_back(iter->Analyze());
+			tdiffs.push_back(iter->Analyze(analyzer, par1, par2, par3));
 		}
 		ProcessTimeDifferences();
 		/*if(args_.size() >= 1){ // Skip the specified number of events.
@@ -117,6 +116,41 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 			std::cout << msgHeader << "Skipping " << numSkip << " events.\n";
 		}
 		else{ showNextEvent = true; }*/
+	}
+	else if(cmd_ == "set"){
+		if(args_.size() >= 2){ // Set the start and stop IDs.
+			startID = strtoul(args_.at(0).c_str(), NULL, 0);
+			stopID = strtoul(args_.at(1).c_str(), NULL, 0);
+			std::cout << msgHeader << "Set TOF start signal ID to (" << startID << ").\n";
+			std::cout << msgHeader << "Set TOF stop signal ID to (" << stopID << ").\n";
+		}
+		else std::cout << msgHeader << "Current startID=" << startID << ", stopID=" << stopID << std::endl;
+	}
+	else if(cmd_ == "method"){
+		if(args_.size() >= 1){ // Set the high-res timing analysis to use.
+			if(args_.at(0) == "POLY")     analyzer = POLY;
+			else if(args_.at(0) == "CFD") analyzer = CFD;
+			else if(args_.at(0) == "FIT") analyzer = FIT;
+			else{
+				std::cout << msgHeader << "Unknown timing analyzer specified (" << args_.at(0) << ")\n";
+				std::cout << msgHeader << "Valid options are \"POLY\", \"CFD\", and \"FIT\"\n";
+			}
+		}
+		else std::cout << msgHeader << "Current timing analyzer is \"" << analyzer << "\"\n";
+	}
+	else if(cmd_ == "clear"){
+		std::cout << msgHeader << "Clearing TOF pairs\n";
+		ClearAll();
+	}
+	else if(cmd_ == "size"){
+		std::cout << msgHeader << "Currently " << tofPairs.size() << " TOF pairs in deque\n";
+	}
+	else if(cmd_ == "num"){
+		if(args_.size() >= 1){
+			minimumTraces = strtoul(args_.at(0).c_str(), NULL, 0);
+			std::cout << msgHeader << "Set minimum number of traces to " << minimumTraces << "\n";
+		}
+		else std::cout << msgHeader << "Minimum number of traces is " << minimumTraces << "\n";
 	}
 	else{ return false; } // Unrecognized command.
 
@@ -152,6 +186,11 @@ void timingScanner::ExtraArguments(){
   */
 void timingScanner::CmdHelp(const std::string &prefix_/*=""*/){
 	std::cout << "   analyze [par1=0.5] [par2=1] [par3=1] - Analyze high-resolution time differences.\n";
+	std::cout << "   set [startID] [stopID]               - Set the pixie ID of the TOF start and stop signals.\n";
+	std::cout << "   method [analyzer]                    - Set the high-res trace analyzer (\"POLY\", \"CFD\", or \"FIT\").\n";
+	std::cout << "   clear                                - Clear all TOF pairs in the deque.\n";
+	std::cout << "   size                                 - Print the number of TOF pairs in the deque.\n";
+	std::cout << "   num [numTraces]                      - Set the minimum number of traces.\n";
 }
 
 /** ArgHelp is used to allow a derived class to add a command line option
@@ -249,7 +288,7 @@ bool timingScanner::ProcessEvents(){
 	
 		// Check for the next event.	
 		if(unsorted.empty()){
-			//delete currentEvent;
+			delete currentEvent;
 			break;
 		}
 
@@ -260,14 +299,14 @@ bool timingScanner::ProcessEvents(){
 				tofPairs.push_back(ChanPair(currentEvent, nextEvent));
 				unsorted.pop_front();
 			}
-			//else delete currentEvent;
+			else delete currentEvent;
 		}
 		else{
 			if(nextEvent->getID() == startID){
 				tofPairs.push_back(ChanPair(nextEvent, currentEvent));
 				unsorted.pop_front();
 			}
-			//else delete currentEvent;
+			else delete currentEvent;
 		}
 	}
 
@@ -296,6 +335,20 @@ void timingScanner::ProcessTimeDifferences(){
 	stddev = std::sqrt(stddev/(nGood-1));
 	std::cout << " mean=" << mean << std::endl;
 	std::cout << " stddev=" << stddev << std::endl;
+}
+
+void timingScanner::ClearAll(){
+	while(!unsorted.empty()){
+		delete unsorted.front();
+		unsorted.pop_front();
+	}
+	while(!tofPairs.empty()){
+		ChanPair *pair = &tofPairs.front();
+		delete pair->start;
+		delete pair->stop;
+		tofPairs.pop_front();
+	}
+	tdiffs.clear();
 }
 
 int main(int argc, char *argv[]){

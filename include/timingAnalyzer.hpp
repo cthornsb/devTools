@@ -157,8 +157,6 @@ class timingScanner : public ScanInterface {
 	virtual bool ProcessEvents();
 
   private:
-	unsigned int timingMethod;
-
 	std::deque<ChannelEvent*> unsorted; /// Deque of unsorted pixie events.
 	std::deque<ChanPair> tofPairs; /// Deque of channel pairs.
 	std::vector<double> tdiffs; /// Vector of all time differences.
@@ -172,7 +170,11 @@ class timingScanner : public ScanInterface {
 	float par2;
 	float par3;
 
+	timingAnalyzer analyzer;
+
 	void ProcessTimeDifferences();
+
+	void ClearAll();
 };
 
 #endif
