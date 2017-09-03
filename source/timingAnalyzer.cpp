@@ -115,6 +115,14 @@ timingScanner::~timingScanner(){
   */
 bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::string> &args_){
 	if(cmd_ == "analyze"){
+		if(args_.size() >= 1){
+			par1 = strtof(args_.at(0).c_str(), NULL);
+			if(args_.size() >= 2)
+				par2 = strtof(args_.at(1).c_str(), NULL);
+			if(args_.size() >= 3)
+				par3 = strtof(args_.at(2).c_str(), NULL);
+			std::cout << msgHeader << "Set analyzer parameters to (" << par1 << ", " << par2 << ", " << par3 << ")\n";
+		}
 		double totalTime = 0;
 		tdiffs.clear();
 		for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
