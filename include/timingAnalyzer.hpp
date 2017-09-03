@@ -177,6 +177,8 @@ class timingScanner : public ScanInterface {
 	void ProcessTimeDifferences();
 
 	void ClearAll();
+
+	bool Write(const char *fname="timing.dat");
 };
 
 #endif

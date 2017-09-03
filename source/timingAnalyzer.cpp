@@ -176,6 +176,14 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		}
 		else std::cout << msgHeader << "Minimum number of traces is " << minimumTraces << "\n";
 	}
+	else if(cmd_ == "write"){
+		std::string ofname = "timing.dat";
+		if(args_.size() >= 1) ofname = args_.at(0);
+		if(Write(ofname.c_str())) // Write the output file.
+			std::cout << msgHeader << "Wrote time differences to file \"" << ofname << "\".\n";
+		else
+			std::cout << msgHeader << "Error! Failed to open file \"" << ofname << "\" for writing.\n";
+	}
 	else{ return false; } // Unrecognized command.
 
 	return true;
@@ -215,6 +223,7 @@ void timingScanner::CmdHelp(const std::string &prefix_/*=""*/){
 	std::cout << "   clear                                - Clear all TOF pairs in the deque.\n";
 	std::cout << "   size                                 - Print the number of TOF pairs in the deque.\n";
 	std::cout << "   num [numTraces]                      - Set the minimum number of traces.\n";
+	std::cout << "   write [filename]                     - Write time differences to an output file.\n";
 }
 
 /** ArgHelp is used to allow a derived class to add a command line option
@@ -373,6 +382,20 @@ void timingScanner::ClearAll(){
 		tofPairs.pop_front();
 	}
 	tdiffs.clear();
+}
+
+bool timingScanner::Write(const char *fname/*="timing.dat"*/){
+	std::ofstream ofile(fname);
+	if(!ofile.good()){
+		ofile.close();
+		return false;
+	}
+	ofile << "tdiff\n";
+	for(std::vector<double>::iterator iter = tdiffs.begin(); iter != tdiffs.end(); ++iter){
+		ofile << *iter << std::endl;
+	}
+	ofile.close();
+	return true;
 }
 
 int main(int argc, char *argv[]){
