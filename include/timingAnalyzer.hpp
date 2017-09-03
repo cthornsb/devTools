@@ -25,7 +25,7 @@ class ChanPair{
 
 	~ChanPair();
 
-	double Analyze(timingAnalyzer analyzer=POLY, const float &par1_=0.5, const float &par2_=1, const float &par3_=1);
+	bool Analyze(double &tdiff, timingAnalyzer analyzer=POLY, const float &par1_=0.5, const float &par2_=1, const float &par3_=1);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

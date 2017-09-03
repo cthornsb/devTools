@@ -34,7 +34,7 @@ const double fwhmCoeff = 2*std::sqrt(2*std::log(2));
 ChanPair::~ChanPair(){
 }
 
-double ChanPair::Analyze(timingAnalyzer analyzer/*=POLY*/, const float &par1_/*=0.5*/, const float &par2_/*=1*/, const float &par3_/*=1*/){
+bool ChanPair::Analyze(double &tdiff, timingAnalyzer analyzer/*=POLY*/, const float &par1_/*=0.5*/, const float &par2_/*=1*/, const float &par3_/*=1*/){
 	start->ComputeBaseline();
 	stop->ComputeBaseline();
 	
@@ -60,7 +60,13 @@ double ChanPair::Analyze(timingAnalyzer analyzer/*=POLY*/, const float &par1_/*=
 	time_span = std::chrono::duration_cast<std::chrono::duration<double> >(stop_time - start_time); // Time between packets in seconds
 	timeTaken = time_span.count();
 	
-	return (start->time*8 + start->phase*4) - (stop->time*8 + stop->phase*4);
+	// Calculate the time difference.
+	tdiff = (start->time*8 + start->phase*4) - (stop->time*8 + stop->phase*4);
+
+	// Check the validity of the output.
+	if(start->phase < 0 || stop->phase < 0) return false;
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -126,20 +132,17 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 			std::cout << msgHeader << "Set analyzer parameters to (" << par1 << ", " << par2 << ", " << par3 << ")\n";
 		}
 		double totalTime = 0;
+		double tdiff;
 		tdiffs.clear();
 		for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
-			tdiffs.push_back(iter->Analyze(analyzer, par1, par2, par3));
-			totalTime += iter->timeTaken;
+			if(iter->Analyze(tdiff, analyzer, par1, par2, par3)){
+				tdiffs.push_back(tdiff);
+				totalTime += iter->timeTaken;
+			}
 		}
 		std::cout << msgHeader << "Total time taken = " << totalTime*(1E6) << " us for " << tdiffs.size() << " traces\n";
 		std::cout << msgHeader << " Average time per trace = " << totalTime*(1E6)/tdiffs.size() << " us\n";
 		ProcessTimeDifferences();
-		/*if(args_.size() >= 1){ // Skip the specified number of events.
-			showNextEvent = true;
-			numSkip = strtoul(args_.at(0).c_str(), NULL, 0);
-			std::cout << msgHeader << "Skipping " << numSkip << " events.\n";
-		}
-		else{ showNextEvent = true; }*/
 	}
 	else if(cmd_ == "set"){
 		if(args_.size() >= 2){ // Set the start and stop IDs.
@@ -390,9 +393,17 @@ bool timingScanner::Write(const char *fname/*="timing.dat"*/){
 		ofile.close();
 		return false;
 	}
-	ofile << "tdiff\n";
-	for(std::vector<double>::iterator iter = tdiffs.begin(); iter != tdiffs.end(); ++iter){
-		ofile << *iter << std::endl;
+	ofile << "timeStart\ttimeStop\tphaseStart\tphaseStop\tmaxStart\tmaxStop\ttdiff\n";
+	ChannelEvent *start, *stop;
+	for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
+		start = iter->start;
+		stop = iter->stop;
+		
+		// Check for bad phases.
+		if(start->phase < 0 || stop->phase < 0) continue;
+
+		// Write the output.
+		ofile << (unsigned long long)start->time << "\t" << (unsigned long long)stop->time << "\t" << start->phase << "\t" << stop->phase << "\t" << start->max_ADC << "\t" << stop->max_ADC << "\t" << ((start->time-stop->time)*8+(start->phase-stop->phase)*4) << std::endl;
 	}
 	ofile.close();
 	return true;
