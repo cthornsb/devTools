@@ -19,6 +19,8 @@ class ChanPair{
 	ChannelEvent *start;
 	ChannelEvent *stop;
 
+	double timeTaken;
+
 	ChanPair(ChannelEvent *start_, ChannelEvent *stop_) : start(start_), stop(stop_) { }
 
 	~ChanPair();

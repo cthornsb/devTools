@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <cstring>
 #include <cmath>
+#include <chrono>
 
 #include "XiaData.hpp"
 
@@ -16,12 +17,13 @@
 #define PROG_NAME "TimingAnalyzer"
 #endif
 
-unsigned int rawEventsRead = 0;
-
 void displayBool(const char *msg_, const bool &val_){
 	if(val_) std::cout << msg_ << "YES\n";
 	else std::cout << msg_ << "NO\n";
 }
+
+typedef std::chrono::high_resolution_clock::time_point hr_time;
+typedef std::chrono::high_resolution_clock hr_clock;
 
 ///////////////////////////////////////////////////////////////////////////////
 // class ChanPair
@@ -33,6 +35,9 @@ ChanPair::~ChanPair(){
 double ChanPair::Analyze(timingAnalyzer analyzer/*=POLY*/, const float &par1_/*=0.5*/, const float &par2_/*=1*/, const float &par3_/*=1*/){
 	start->ComputeBaseline();
 	stop->ComputeBaseline();
+	
+	// Start the timer.
+	hr_time start_time = hr_clock::now();
 
 	if(analyzer == POLY){
 		start->AnalyzePolyCFD(par1_);
@@ -45,6 +50,14 @@ double ChanPair::Analyze(timingAnalyzer analyzer/*=POLY*/, const float &par1_/*=
 	else if(analyzer == FIT){
 	}
 
+	// Stop the timer.
+	hr_time stop_time = hr_clock::now();
+
+	// Calculate the time taken to analyze the trace.
+	std::chrono::duration<double> time_span;
+	time_span = std::chrono::duration_cast<std::chrono::duration<double> >(stop_time - start_time); // Time between packets in seconds
+	timeTaken = time_span.count();
+	
 	return (start->time*8 + start->phase*4) - (stop->time*8 + stop->phase*4);
 }
 
@@ -78,9 +91,6 @@ void timingUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 	
 	// Finish up with this raw event.
 	addr_->ProcessEvents();
-
-	// Increment the number of raw events processed so far.
-	rawEventsRead++;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -105,10 +115,14 @@ timingScanner::~timingScanner(){
   */
 bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::string> &args_){
 	if(cmd_ == "analyze"){
+		double totalTime = 0;
 		tdiffs.clear();
 		for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
 			tdiffs.push_back(iter->Analyze(analyzer, par1, par2, par3));
+			totalTime += iter->timeTaken;
 		}
+		std::cout << msgHeader << "Total time taken = " << totalTime*(1E6) << " us for " << tdiffs.size() << " traces\n";
+		std::cout << msgHeader << " Average time per trace = " << totalTime*(1E6)/tdiffs.size() << " us\n";
 		ProcessTimeDifferences();
 		/*if(args_.size() >= 1){ // Skip the specified number of events.
 			showNextEvent = true;
@@ -333,8 +347,8 @@ void timingScanner::ProcessTimeDifferences(){
 		stddev += std::pow(*iter-mean, 2.0);
 	}
 	stddev = std::sqrt(stddev/(nGood-1));
-	std::cout << " mean=" << mean << std::endl;
-	std::cout << " stddev=" << stddev << std::endl;
+	std::cout << msgHeader << " Mean Tdiff = " << mean << std::endl;
+	std::cout << msgHeader << " Std. Dev. = " << stddev << std::endl;
 }
 
 void timingScanner::ClearAll(){
