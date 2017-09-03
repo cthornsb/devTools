@@ -5,6 +5,7 @@
 
 #include "Unpacker.hpp"
 #include "ScanInterface.hpp"
+#include "TraceFitter.hpp"
 
 class XiaData;
 
@@ -25,7 +26,7 @@ class ChanPair{
 
 	~ChanPair();
 
-	bool Analyze(double &tdiff, timingAnalyzer analyzer=POLY, const float &par1_=0.5, const float &par2_=1, const float &par3_=1);
+	bool Analyze(double &tdiff, timingAnalyzer analyzer=POLY, const float &par1_=0.5, const float &par2_=1, const float &par3_=1, TraceFitter *fitter_=NULL);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -66,6 +67,9 @@ class timingScanner : public ScanInterface {
 	
 	/// Destructor.
 	~timingScanner();
+
+	/// Return a pointer to the trace fitter.
+	TraceFitter *GetTraceFitter(){ return &fitter; }
 
 	/** ExtraCommands is used to send command strings to classes derived
 	  * from ScanInterface. If ScanInterface receives an unrecognized
@@ -173,6 +177,8 @@ class timingScanner : public ScanInterface {
 	float par3;
 
 	timingAnalyzer analyzer;
+
+	TraceFitter fitter;
 
 	void ProcessTimeDifferences();
 

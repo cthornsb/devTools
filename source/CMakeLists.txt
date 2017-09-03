@@ -27,7 +27,7 @@ endif()
 if(${TIMING_ANALYZER})
 	#Build timingAnalyzer executable.
 	add_executable(timingAnalyzer timingAnalyzer.cpp)
-	target_link_libraries(timingAnalyzer Scan)
+	target_link_libraries(timingAnalyzer Scan ${ROOT_LIBRARIES})
 	install(TARGETS timingAnalyzer DESTINATION bin)
 endif()
 

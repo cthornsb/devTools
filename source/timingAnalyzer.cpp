@@ -34,7 +34,7 @@ const double fwhmCoeff = 2*std::sqrt(2*std::log(2));
 ChanPair::~ChanPair(){
 }
 
-bool ChanPair::Analyze(double &tdiff, timingAnalyzer analyzer/*=POLY*/, const float &par1_/*=0.5*/, const float &par2_/*=1*/, const float &par3_/*=1*/){
+bool ChanPair::Analyze(double &tdiff, timingAnalyzer analyzer/*=POLY*/, const float &par1_/*=0.5*/, const float &par2_/*=1*/, const float &par3_/*=1*/, TraceFitter *fitter/*=NULL*/){
 	start->ComputeBaseline();
 	stop->ComputeBaseline();
 	
@@ -49,7 +49,9 @@ bool ChanPair::Analyze(double &tdiff, timingAnalyzer analyzer/*=POLY*/, const fl
 		start->AnalyzeCFD(par1_, (int)par2_, (int)par3_);
 		stop->AnalyzeCFD(par1_, (int)par2_, (int)par3_);
 	}
-	else if(analyzer == FIT){
+	else if(analyzer == FIT && fitter != NULL){
+		fitter->FitPulse(start);
+		fitter->FitPulse(stop);
 	}
 
 	// Stop the timer.
@@ -106,7 +108,7 @@ void timingUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), analyzer(POLY) {
+timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), analyzer(POLY), fitter() {
 }
 
 /// Destructor.
@@ -134,8 +136,11 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		double totalTime = 0;
 		double tdiff;
 		tdiffs.clear();
+		if(analyzer == FIT){ // Set fit function beta and gamma.
+			fitter.SetBetaGamma(par1, par2);
+		}
 		for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
-			if(iter->Analyze(tdiff, analyzer, par1, par2, par3)){
+			if(iter->Analyze(tdiff, analyzer, par1, par2, par3, &fitter)){
 				tdiffs.push_back(tdiff);
 				totalTime += iter->timeTaken;
 			}
