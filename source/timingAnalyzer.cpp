@@ -108,7 +108,7 @@ void timingUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), analyzer(POLY), fitter() {
+timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), fitRangeLow(5), fitRangeHigh(10), analyzer(POLY), fitter() {
 }
 
 /// Destructor.
@@ -137,6 +137,7 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		double tdiff;
 		tdiffs.clear();
 		if(analyzer == FIT){ // Set fit function beta and gamma.
+			fitter.SetFitRange(fitRangeLow, fitRangeHigh);
 			fitter.SetBetaGamma(par1, par2);
 		}
 		for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
@@ -192,6 +193,13 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		else
 			std::cout << msgHeader << "Error! Failed to open file \"" << ofname << "\" for writing.\n";
 	}
+	else if(cmd_ == "range"){
+		if(args_.size() >= 2){
+			fitRangeLow = strtoul(args_.at(0).c_str(), NULL, 0);
+			fitRangeHigh = strtoul(args_.at(1).c_str(), NULL, 0);
+		}
+		std::cout << msgHeader << "Using fitting range of [maxIndex-" << fitRangeLow << ", maxIndex+" << fitRangeHigh << "].\n";
+	}
 	else{ return false; } // Unrecognized command.
 
 	return true;
@@ -232,6 +240,7 @@ void timingScanner::CmdHelp(const std::string &prefix_/*=""*/){
 	std::cout << "   size                                 - Print the number of TOF pairs in the deque.\n";
 	std::cout << "   num [numTraces]                      - Set the minimum number of traces.\n";
 	std::cout << "   write [filename]                     - Write time differences to an output file.\n";
+	std::cout << "   range [low] [high]                   - Set the range to use for fits [maxIndex-low, maxIndex+high].\n";
 }
 
 /** ArgHelp is used to allow a derived class to add a command line option
