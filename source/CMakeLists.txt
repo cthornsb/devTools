@@ -24,11 +24,16 @@ if(${EVENT_READER})
 	install(TARGETS eventReader DESTINATION bin)
 endif()
 
-if(${TIMING_ANALYZER})
+if(${ANALYZERS})
 	#Build timingAnalyzer executable.
 	add_executable(timingAnalyzer timingAnalyzer.cpp)
 	target_link_libraries(timingAnalyzer Scan ${ROOT_LIBRARIES})
 	install(TARGETS timingAnalyzer DESTINATION bin)
+
+	#Build timingAnalyzer executable.
+	add_executable(tqdcAnalyzer tqdcAnalyzer.cpp)
+	target_link_libraries(tqdcAnalyzer Scan ${ROOT_LIBRARIES})
+	install(TARGETS tqdcAnalyzer DESTINATION bin)
 endif()
 
 if(${RCBUILD})
