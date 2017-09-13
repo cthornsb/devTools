@@ -147,7 +147,7 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 			}
 		}
 		std::cout << msgHeader << "Total time taken = " << totalTime*(1E6) << " us for " << tdiffs.size() << " traces\n";
-		std::cout << msgHeader << " Average time per trace = " << totalTime*(1E6)/tdiffs.size() << " us\n";
+		std::cout << msgHeader << " Average time per trace = " << totalTime*(1E6)/(2*tdiffs.size()) << " us\n";
 		ProcessTimeDifferences();
 	}
 	else if(cmd_ == "set"){
