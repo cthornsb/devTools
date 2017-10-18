@@ -201,15 +201,15 @@ void list(){
 
 int main(int argc, char *argv[]){
 	optionHandler handler;
-	handler.addOption(optionExt("input", required_argument, NULL, 'i', "<filename>", "Specify the filename of the input data file"));
-	handler.addOption(optionExt("type", required_argument, NULL, 't', "<int>", "Only display buffers of a specified type"));
-	handler.addOption(optionExt("raw", no_argument, NULL, 'r', "", "Display raw buffer words (hidden by default)"));
-	handler.addOption(optionExt("convert", no_argument, NULL, 'c', "", "Attempt to convert words to Ascii characters"));
-	handler.addOption(optionExt("search", required_argument, NULL, 's', "<int>", "Search for an integer in the data stream"));
-	handler.addOption(optionExt("list", no_argument, NULL, 'l', "", "Display a list of commonly used ldf buffer headers"));
-	handler.addOption(optionExt("zero", no_argument, NULL, 'z', "", "Suppress zero output"));
-	handler.addOption(optionExt("word", required_argument, NULL, 'w', "<int>", "Specify the file word size"));
-	handler.addOption(optionExt("offset", required_argument, NULL, 'o', "<long long>", "Specify the start word of the file"));
+	handler.add(optionExt("input", required_argument, NULL, 'i', "<filename>", "Specify the filename of the input data file"));
+	handler.add(optionExt("type", required_argument, NULL, 't', "<int>", "Only display buffers of a specified type"));
+	handler.add(optionExt("raw", no_argument, NULL, 'r', "", "Display raw buffer words (hidden by default)"));
+	handler.add(optionExt("convert", no_argument, NULL, 'c', "", "Attempt to convert words to Ascii characters"));
+	handler.add(optionExt("search", required_argument, NULL, 's', "<int>", "Search for an integer in the data stream"));
+	handler.add(optionExt("list", no_argument, NULL, 'l', "", "Display a list of commonly used ldf buffer headers"));
+	handler.add(optionExt("zero", no_argument, NULL, 'z', "", "Suppress zero output"));
+	handler.add(optionExt("word", required_argument, NULL, 'w', "<int>", "Specify the file word size"));
+	handler.add(optionExt("offset", required_argument, NULL, 'o', "<long long>", "Specify the start word of the file"));
 
 	if(!handler.setup(argc, argv)){
 		return 1;

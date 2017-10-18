@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.8.11)
 
-project (paassDevTools)
+project (devTools)
 
 #Compile with c++11 or c++0x depending on the compiler version
 if (CMAKE_COMPILER_IS_GNUCXX)
@@ -52,19 +52,18 @@ option(EVENT_READER "Build and install raw XiaData event reader." OFF)
 option(ANALYZERS "Build and install high-res timing and TQDC analyzers." OFF)
 option(LDF_FIXER "Build and install ldf buffer repair program." OFF)
 option(HEX_READER "Build and install hexadecimal reader program." ON)
-option(RCBUILD "Build and install root dict source file generator." OFF)
 
 #------------------------------------------------------------------------------
 
 #Find required packages.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-if (EVENT_READER)
-	#Find paass install.
-	find_package (PAASS REQUIRED)
-	include_directories(${PAASS_INCLUDE_DIR})
-	link_directories(${PAASS_LIBRARY_DIR})
+#Find ROOT install.
+find_package (SimpleScan REQUIRED)
+include_directories(${SIMPLE_SCAN_INCLUDE_DIR})
+link_directories(${SIMPLE_SCAN_LIBRARY_DIR})
 
+if (EVENT_READER)
 	#Find ROOT install.
 	find_package (ROOT REQUIRED)
 	mark_as_advanced(FORCE GENREFLEX_EXECUTABLE ROOTCINT_EXECUTABLE ROOT_CONFIG_EXECUTABLE)
@@ -76,8 +75,6 @@ set(TOP_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 include_directories(include)
 add_subdirectory(source)
-
-add_subdirectory(scripts)
 
 #Build/install the miscellaneous stuff
 add_subdirectory(share)

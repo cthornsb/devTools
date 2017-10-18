@@ -1,44 +1,32 @@
-add_library(Scan SHARED IMPORTED)
-set_property(TARGET Scan PROPERTY IMPORTED_LOCATION ${PAASS_LIB_SCAN})
-
-add_library(optionHandlerStatic STATIC optionHandler.cpp)
-
 if(${LDF_FIXER})
 	#Build ldfFixer executable.
 	add_executable(ldfFixer ldfFixer.cpp)
-	target_link_libraries(ldfFixer optionHandlerStatic)
+	target_link_libraries(ldfFixer ${SimpleScan_OPT_LIB})
 	install(TARGETS ldfFixer DESTINATION bin)
 endif()
 
 if(${HEX_READER})
 	#Build hexReader executable.
 	add_executable(hexReader hexReader.cpp)
-	target_link_libraries(hexReader optionHandlerStatic)
+	target_link_libraries(hexReader ${SimpleScan_OPT_LIB})
 	install(TARGETS hexReader DESTINATION bin)
 endif()
 
 if(${EVENT_READER})
 	#Build eventReader executable.
 	add_executable(eventReader eventReader.cpp)
-	target_link_libraries(eventReader Scan ${ROOT_LIBRARIES})
+	target_link_libraries(eventReader ${SimpleScan_SCAN_LIB} ${ROOT_LIBRARIES})
 	install(TARGETS eventReader DESTINATION bin)
 endif()
 
 if(${ANALYZERS})
 	#Build timingAnalyzer executable.
 	add_executable(timingAnalyzer timingAnalyzer.cpp)
-	target_link_libraries(timingAnalyzer Scan ${ROOT_LIBRARIES})
+	target_link_libraries(timingAnalyzer ${SimpleScan_SCAN_LIB} ${ROOT_LIBRARIES})
 	install(TARGETS timingAnalyzer DESTINATION bin)
 
 	#Build timingAnalyzer executable.
 	add_executable(tqdcAnalyzer tqdcAnalyzer.cpp)
-	target_link_libraries(tqdcAnalyzer Scan ${ROOT_LIBRARIES})
+	target_link_libraries(tqdcAnalyzer ${SimpleScan_SCAN_LIB} ${ROOT_LIBRARIES})
 	install(TARGETS tqdcAnalyzer DESTINATION bin)
-endif()
-
-if(${RCBUILD})
-	#Build rcbuild executable.
-	add_executable(rcbuild rcbuild.cpp)
-	target_link_libraries(rcbuild optionHandlerStatic)
-	install(TARGETS rcbuild DESTINATION bin)
 endif()

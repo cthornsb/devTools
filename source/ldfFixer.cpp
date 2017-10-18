@@ -51,10 +51,10 @@ bool validBuffer(const unsigned int &head_){
 
 int main(int argc, char *argv[]){
 	optionHandler handler;
-	handler.addOption(optionExt("input", required_argument, NULL, 'i', "<filename>", "Specify the filename of the input ldf file"));
-	handler.addOption(optionExt("output", required_argument, NULL, 'o', "<filename>", "Specify the filename of the output ldf file"));
-	handler.addOption(optionExt("force", no_argument, NULL, 'f', "", "Force overwrite of the output ldf file"));
-	handler.addOption(optionExt("debug", no_argument, NULL, 'd', "", "Toggle debug mode"));
+	handler.add(optionExt("input", required_argument, NULL, 'i', "<filename>", "Specify the filename of the input ldf file"));
+	handler.add(optionExt("output", required_argument, NULL, 'o', "<filename>", "Specify the filename of the output ldf file"));
+	handler.add(optionExt("force", no_argument, NULL, 'f', "", "Force overwrite of the output ldf file"));
+	handler.add(optionExt("debug", no_argument, NULL, 'd', "", "Toggle debug mode"));
 
 	if(!handler.setup(argc, argv)){
 		return 1;
