@@ -58,10 +58,10 @@ option(HEX_READER "Build and install hexadecimal reader program." ON)
 #Find required packages.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-#Find ROOT install.
+#Find simpleScan install.
 find_package (SimpleScan REQUIRED)
-include_directories(${SIMPLE_SCAN_INCLUDE_DIR})
-link_directories(${SIMPLE_SCAN_LIBRARY_DIR})
+include_directories(${SimpleScan_INCLUDE_DIR})
+mark_as_advanced(SimpleScan_SCAN_LIB SimpleScan_OPT_LIB)
 
 if (EVENT_READER)
 	#Find ROOT install.
