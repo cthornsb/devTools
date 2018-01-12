@@ -179,6 +179,9 @@ class timingScanner : public ScanInterface {
 	unsigned short fitRangeLow;
 	unsigned short fitRangeHigh;
 
+	double startThresh;
+	double stopThresh;
+
 	timingAnalyzer analyzer;
 
 	TraceFitter fitter;

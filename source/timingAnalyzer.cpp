@@ -35,9 +35,6 @@ ChanPair::~ChanPair(){
 }
 
 bool ChanPair::Analyze(double &tdiff, timingAnalyzer analyzer/*=POLY*/, const float &par1_/*=0.5*/, const float &par2_/*=1*/, const float &par3_/*=1*/, TraceFitter *fitter/*=NULL*/){
-	start->ComputeBaseline();
-	stop->ComputeBaseline();
-	
 	// Start the timer.
 	hr_time start_time = hr_clock::now();
 
@@ -108,7 +105,7 @@ void timingUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), fitRangeLow(5), fitRangeHigh(10), analyzer(POLY), fitter() {
+timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), fitRangeLow(5), fitRangeHigh(10), startThresh(0), stopThresh(0), analyzer(POLY), fitter() {
 }
 
 /// Destructor.
@@ -200,6 +197,16 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		}
 		std::cout << msgHeader << "Using fitting range of [maxIndex-" << fitRangeLow << ", maxIndex+" << fitRangeHigh << "].\n";
 	}
+	else if(cmd_ == "thresh"){
+		if(args_.size() >= 1){
+			startThresh = strtod(args_.at(0).c_str(), NULL);
+			if(args_.size() >= 2)
+				stopThresh = strtod(args_.at(1).c_str(), NULL);
+			else
+				stopThresh = startThresh;
+		}
+		std::cout << msgHeader << "Using following thresholds, start=" << startThresh << ", stop=" << stopThresh << ".\n";
+	}
 	else{ return false; } // Unrecognized command.
 
 	return true;
@@ -241,6 +248,7 @@ void timingScanner::CmdHelp(const std::string &prefix_/*=""*/){
 	std::cout << "   num [numTraces]                      - Set the minimum number of traces.\n";
 	std::cout << "   write [filename]                     - Write time differences to an output file.\n";
 	std::cout << "   range [low] [high]                   - Set the range to use for fits [maxIndex-low, maxIndex+high].\n";
+	std::cout << "   thresh [start] [stop]                - Set the minimum TQDC threshold to use (default=0).\n";
 }
 
 /** ArgHelp is used to allow a derived class to add a command line option
@@ -332,7 +340,12 @@ bool timingScanner::ProcessEvents(){
 	// Process all of the events added so far.
 	ChannelEvent *currentEvent;
 	ChannelEvent *nextEvent;
+	ChannelEvent *start;
+	ChannelEvent *stop;
+	bool goodEvent;
 	while(!unsorted.empty()){
+		goodEvent = false;
+
 		currentEvent = unsorted.front();
 		unsorted.pop_front();
 	
@@ -346,18 +359,31 @@ bool timingScanner::ProcessEvents(){
 
 		if(currentEvent->getID() == startID){
 			if(nextEvent->getID() == stopID){
+				goodEvent = true;
+				start = currentEvent;
+				stop = nextEvent;
+			}
+		}
+		else if(nextEvent->getID() == startID){
+			goodEvent = true;
+			start = nextEvent;
+			stop = currentEvent;
+		}
+	
+		if(goodEvent){
+			start->ComputeBaseline();
+			stop->ComputeBaseline();
+			start->IntegratePulse(start->max_index - fitRangeLow, start->max_index + fitRangeHigh);
+			stop->IntegratePulse(stop->max_index - fitRangeLow, stop->max_index + fitRangeHigh);
+			if(start->qdc >= startThresh && stop->qdc >= stopThresh)
 				tofPairs.push_back(ChanPair(currentEvent, nextEvent));
-				unsorted.pop_front();
+			else{
+				delete currentEvent;
+				delete nextEvent;
 			}
-			else delete currentEvent;
+			unsorted.pop_front();
 		}
-		else{
-			if(nextEvent->getID() == startID){
-				tofPairs.push_back(ChanPair(nextEvent, currentEvent));
-				unsorted.pop_front();
-			}
-			else delete currentEvent;
-		}
+		else delete currentEvent;
 	}
 
 	if(tofPairs.size() >= minimumTraces){
