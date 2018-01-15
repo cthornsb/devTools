@@ -7,6 +7,9 @@
 #include <cmath>
 #include <chrono>
 
+#include "TFile.h"
+#include "TTree.h"
+
 #include "XiaData.hpp"
 
 // Local files
@@ -207,6 +210,81 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		}
 		std::cout << msgHeader << "Using following thresholds, start=" << startThresh << ", stop=" << stopThresh << ".\n";
 	}
+	else if(cmd_ == "auto"){
+		if(analyzer == FIT)
+			std::cout << msgHeader << "Error! Unable to perform auto-analysis for fitting analyzer.\n";
+		else if(args_.size() >= 3){
+			float startValue = strtof(args_.at(0).c_str(), NULL);
+			float stopValue = strtof(args_.at(1).c_str(), NULL);
+			int numSteps = strtol(args_.at(2).c_str(), NULL, 10);
+
+			if(numSteps <= 0)
+				std::cout << msgHeader << "Error! Invalid number of steps (" << numSteps << ").\n";
+
+			float stepSize = (stopValue-startValue)/numSteps;
+
+			std::cout << msgHeader << "Running auto-analysis for F=" << startValue << " to " << stopValue << " (stepSize=" << stepSize << ").\n";
+
+			TFile *ofile = new TFile("timing.root", "RECREATE");
+			TTree *otree = new TTree("data", "Timing analyzer output tree");
+
+			double timeStart, timeStop, tdiff;
+			float phaseStart, phaseStop;
+			float tqdcStart, tqdcStop;
+			int iteration = 0;
+
+			otree->Branch("timeStart", &timeStart);
+			otree->Branch("timeStop", &timeStop);
+			otree->Branch("tdiff", &tdiff);
+			otree->Branch("phaseStart", &phaseStart);
+			otree->Branch("phaseStop", &phaseStop);
+			otree->Branch("tqdcStart", &tqdcStart);
+			otree->Branch("tqdcStop", &tqdcStop);
+			otree->Branch("par1", &par1);
+			//otree->Branch("par2", &par2);
+			//otree->Branch("par3", &par3);	
+			otree->Branch("iter", &iteration);
+	
+			std::cout << msgHeader << "Processing... Please wait.\n";
+
+			ChannelEvent *start, *stop;	
+			for(int i = 0; i <= numSteps; i++){
+				par1 = startValue + i*stepSize;
+				//par2 = 0;
+				//par3 = 0;
+				for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
+					//if(iter->Analyze(tdiff, analyzer, par1, par2, par3)){
+					//if(!iter->Analyze(tdiff, analyzer, par1)) continue;
+					iter->Analyze(tdiff, analyzer, par1);
+					start = iter->start;
+					stop = iter->stop;
+					
+					// Check for bad phases.
+					if(start->phase < 0 || stop->phase < 0) continue;
+
+					timeStart = start->time;
+					timeStop = stop->time;
+					phaseStart = start->phase;
+					phaseStop = stop->phase;
+					tqdcStart = start->qdc;
+					tqdcStop = stop->qdc;
+					tdiff = (timeStop-timeStart)*8 + (phaseStop-phaseStart)*4;
+					
+					otree->Fill();
+				}
+				iteration++;
+			}
+
+			ofile->cd();
+			otree->Write();
+			ofile->Close();
+			delete ofile;
+
+			std::cout << msgHeader << "Analysis complete (iter=" << iteration << ")!\n";
+		}
+		else{
+		}
+	}
 	else{ return false; } // Unrecognized command.
 
 	return true;
@@ -249,6 +327,7 @@ void timingScanner::CmdHelp(const std::string &prefix_/*=""*/){
 	std::cout << "   write [filename]                     - Write time differences to an output file.\n";
 	std::cout << "   range [low] [high]                   - Set the range to use for fits [maxIndex-low, maxIndex+high].\n";
 	std::cout << "   thresh [start] [stop]                - Set the minimum TQDC threshold to use (default=0).\n";
+	std::cout << "   auto <start> <stop> <steps>          - Automatically vary par1 from start to stop.\n";
 }
 
 /** ArgHelp is used to allow a derived class to add a command line option
