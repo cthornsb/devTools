@@ -10,6 +10,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include "CTerminal.h"
 #include "XiaData.hpp"
 
 // Local files
@@ -213,86 +214,108 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 	else if(cmd_ == "auto"){
 		if(analyzer == FIT)
 			std::cout << msgHeader << "Error! Unable to perform auto-analysis for fitting analyzer.\n";
-		else if(args_.size() >= 3){
-			float startValue = strtof(args_.at(0).c_str(), NULL);
-			float stopValue = strtof(args_.at(1).c_str(), NULL);
-			int numSteps = strtol(args_.at(2).c_str(), NULL, 10);
+		
+		float startValue[3] = {0, 0, 0};
+		float stopValue[3] = {0, 0, 0};
+		float stepSize[3] = {0, 0, 0};
+		int numSteps[3] = {1, 1, 1};
 
-			std::string outputFilename = "timing.root";
-			if(args_.size() >= 4)
-				outputFilename = args_.at(3);
-
-			if(numSteps <= 0)
-				std::cout << msgHeader << "Error! Invalid number of steps (" << numSteps << ").\n";
-
-			float stepSize = (stopValue-startValue)/numSteps;
-
-			std::cout << msgHeader << "Running auto-analysis for F=" << startValue << " to " << stopValue << " (stepSize=" << stepSize << ").\n";
-
-			TFile *ofile = new TFile(outputFilename.c_str(), "RECREATE");
-			TTree *otree = new TTree("data", "Timing analyzer output tree");
-
-			if(!ofile->IsOpen())
-				std::cout << msgHeader << "Error! Failed to open output root file \"" << outputFilename << "\".\n";
-
-			double timeStart, timeStop, tdiff;
-			float phaseStart, phaseStop;
-			float tqdcStart, tqdcStop;
-			int iteration = 0;
-
-			otree->Branch("timeStart", &timeStart);
-			otree->Branch("timeStop", &timeStop);
-			otree->Branch("tdiff", &tdiff);
-			otree->Branch("phaseStart", &phaseStart);
-			otree->Branch("phaseStop", &phaseStop);
-			otree->Branch("tqdcStart", &tqdcStart);
-			otree->Branch("tqdcStop", &tqdcStop);
-			otree->Branch("par1", &par1);
-			if(analyzer == CFD){
-				otree->Branch("par2", &par2);
-				otree->Branch("par3", &par3);	
-			}
-			otree->Branch("iter", &iteration);
-	
-			std::cout << msgHeader << "Processing... Please wait.\n";
-
-			ChannelEvent *start, *stop;	
-			for(int i = 0; i < numSteps; i++){
-				par1 = startValue + i*stepSize + stepSize/2;
-				if(analyzer == CFD){
-					par2 = 0;
-					par3 = 0;
+		std::string userInput, userArgs;
+		std::vector<std::string> userSplitArgs;
+		for(int i = 0; i < (analyzer == POLY ? 1 : 3); i++){
+			while(true){
+				userSplitArgs.clear();
+				std::cout << msgHeader << "Enter par" << i+1 << " start stop and steps:\n"; 
+				GetTerminal()->flush();
+				userInput = GetTerminal()->GetCommand(userArgs);
+				split_str(userArgs, userSplitArgs);
+				if(userSplitArgs.size() < 2){
+					std::cout << "Error! Invalid number of arguments. Expected 3, but received only " << userSplitArgs.size()+1 << ".\n";
+					continue;
 				}
-				for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
-					//if(!iter->Analyze(tdiff, analyzer, par1, par2, par3)) continue;
-					if(!iter->Analyze(tdiff, analyzer, par1)) continue;
-	
-					start = iter->start;
-					stop = iter->stop;
-					
-					timeStart = start->time;
-					timeStop = stop->time;
-					phaseStart = start->phase;
-					phaseStop = stop->phase;
-					tqdcStart = start->qdc;
-					tqdcStop = stop->qdc;
-					
-					otree->Fill();
-				}
-				iteration++;
+				startValue[i] = strtof(userInput.c_str(), NULL); 
+				stopValue[i] = strtof(userSplitArgs[0].c_str(), NULL); 
+				numSteps[i] = strtol(userSplitArgs[1].c_str(), NULL, 10); 
+				stepSize[i] = (stopValue[i]-startValue[i])/numSteps[i];
+				if(numSteps[i] > 0) break;
+				std::cout << msgHeader << "Error! Invalid number of steps (" << numSteps[i] << ").\n";
 			}
-
-			ofile->cd();
-			otree->Write();
-			ofile->Close();
-			delete ofile;
-
-			std::cout << msgHeader << "Analysis complete!\n";
 		}
-		else{
-			std::cout << msgHeader << "Invalid number of parameters to 'auto'\n";
-			std::cout << msgHeader << " -SYNTAX- auto <start> <stop> <steps> [fname]\n";
+
+		std::string outputFilename = "timing.root";
+		if(args_.size() >= 1)
+			outputFilename = args_.at(0);
+	
+		std::cout << msgHeader << "Running auto-analysis for F=" << startValue[0] << " to " << stopValue[0] << " (stepSize=" << stepSize[0] << ").\n";
+		if(analyzer == CFD){
+			std::cout << msgHeader << "Running auto-analysis for D=" << startValue[1] << " to " << stopValue[1] << " (stepSize=" << stepSize[1] << ").\n";
+			std::cout << msgHeader << "Running auto-analysis for L=" << startValue[2] << " to " << stopValue[2] << " (stepSize=" << stepSize[2] << ").\n";
 		}
+
+		TFile *ofile = new TFile(outputFilename.c_str(), "RECREATE");
+		TTree *otree = new TTree("data", "Timing analyzer output tree");
+
+		if(!ofile->IsOpen())
+			std::cout << msgHeader << "Error! Failed to open output root file \"" << outputFilename << "\".\n";
+
+		double timeStart, timeStop, tdiff;
+		float phaseStart, phaseStop;
+		float tqdcStart, tqdcStop;
+		int iteration = 0;
+
+		otree->Branch("timeStart", &timeStart);
+		otree->Branch("timeStop", &timeStop);
+		otree->Branch("tdiff", &tdiff);
+		otree->Branch("phaseStart", &phaseStart);
+		otree->Branch("phaseStop", &phaseStop);
+		otree->Branch("tqdcStart", &tqdcStart);
+		otree->Branch("tqdcStop", &tqdcStop);
+		otree->Branch("par1", &par1);
+		if(analyzer == CFD){
+			otree->Branch("par2", &par2);
+			otree->Branch("par3", &par3);	
+		}
+		otree->Branch("iter", &iteration);
+
+		std::cout << msgHeader << "Processing... Please wait.\n";
+
+		ChannelEvent *start, *stop;	
+		for(int i = 0; i < numSteps[0]; i++){ // over par1
+			for(int j = 0; j < numSteps[1]; j++){ // over par2
+				for(int k = 0; k < numSteps[2]; k++){ // over par3
+					par1 = startValue[0] + i*stepSize[0] + stepSize[0]/2;
+					if(analyzer == CFD){
+						par2 = startValue[1] + j*stepSize[1] + stepSize[1]/2;
+						par3 = startValue[2] + k*stepSize[2] + stepSize[2]/2;
+					}
+					for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
+						if(!iter->Analyze(tdiff, analyzer, par1, par2, par3)) continue;
+
+						//if(tdiff < 0) tdiff *= -1;
+
+						start = iter->start;
+						stop = iter->stop;
+						
+						timeStart = start->time;
+						timeStop = stop->time;
+						phaseStart = start->phase;
+						phaseStop = stop->phase;
+						tqdcStart = start->qdc;
+						tqdcStop = stop->qdc;
+						
+						otree->Fill();
+					}
+					iteration++;
+				}
+			}
+		}
+
+		ofile->cd();
+		otree->Write();
+		ofile->Close();
+		delete ofile;
+
+		std::cout << msgHeader << "Analysis complete!\n";
 	}
 	else{ return false; } // Unrecognized command.
 
