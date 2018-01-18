@@ -24,6 +24,11 @@ find_library(SimpleScan_OPT_LIB
 	PATHS /opt/simpleScan/install
 	PATH_SUFFIXES lib)
 
+find_library(SimpleScan_CORE_LIB
+	NAMES libSimpleCore.so
+	PATHS /opt/simpleScan/install
+	PATH_SUFFIXES lib)
+
 #---Report the status of finding SimpleScan-------------------
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(SimpleScan DEFAULT_MSG SimpleScan_INCLUDE_DIR SimpleScan_SCAN_LIB SimpleScan_OPT_LIB)
+find_package_handle_standard_args(SimpleScan DEFAULT_MSG SimpleScan_INCLUDE_DIR SimpleScan_SCAN_LIB SimpleScan_OPT_LIB SimpleScan_CORE_LIB)

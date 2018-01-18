@@ -30,3 +30,17 @@ if(${ANALYZERS})
 	target_link_libraries(tqdcAnalyzer ${SimpleScan_SCAN_LIB} ${ROOT_LIBRARIES})
 	install(TARGETS tqdcAnalyzer DESTINATION bin)
 endif()
+
+if(${BUILD_SCOPE})
+	#Build scope executable.
+	add_executable(scope scope.cpp)
+	target_link_libraries(scope ${SimpleScan_SCAN_LIB} ${ROOT_LIBRARIES})
+	install(TARGETS scope DESTINATION bin)
+endif()
+
+if(${HEAD_READER})
+	# Install headReader executable.
+	add_executable(headReader headReader.cpp)
+	target_link_libraries(headReader ${SimpleScan_CORE_LIB})
+	install (TARGETS headReader DESTINATION bin)
+endif()

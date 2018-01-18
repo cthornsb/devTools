@@ -52,6 +52,8 @@ option(EVENT_READER "Build and install raw XiaData event reader." OFF)
 option(ANALYZERS "Build and install high-res timing and TQDC analyzers." OFF)
 option(LDF_FIXER "Build and install ldf buffer repair program." OFF)
 option(HEX_READER "Build and install hexadecimal reader program." ON)
+option(BUILD_SCOPE "Build and install Pixie16 trace viewer." OFF)
+option(HEAD_READER "Build and install ldf/pld header reader program." ON)
 
 #------------------------------------------------------------------------------
 
