@@ -6,9 +6,12 @@
 #include <cstring>
 #include <cmath>
 #include <chrono>
+#include <algorithm>
 
 #include "TFile.h"
 #include "TTree.h"
+
+#include "TF1.h"
 
 #include "CTerminal.h"
 #include "XiaData.hpp"
@@ -20,6 +23,8 @@
 #ifndef PROG_NAME
 #define PROG_NAME "TimingAnalyzer"
 #endif
+
+#define ADC_TIME_STEP 4 // ns
 
 void displayBool(const char *msg_, const bool &val_){
 	if(val_) std::cout << msg_ << "YES\n";
@@ -109,7 +114,9 @@ void timingUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), fitRangeLow(5), fitRangeHigh(10), startThresh(0), stopThresh(0), analyzer(POLY), fitter() {
+timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), fitRangeLow(-5), fitRangeHigh(10), startThresh(0), stopThresh(0), analyzer(POLY), fitter() {
+	// Set the fit function x-axis multiplier to the ADC tick size.
+	fitter.SetAxisMultiplier(ADC_TIME_STEP);
 }
 
 /// Destructor.
@@ -138,7 +145,7 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		double tdiff;
 		tdiffs.clear();
 		if(analyzer == FIT){ // Set fit function beta and gamma.
-			fitter.SetFitRange(fitRangeLow, fitRangeHigh);
+			!fitter.SetFitRange(fitRangeLow, fitRangeHigh);
 			fitter.SetBetaGamma(par1, par2);
 		}
 		for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
@@ -196,10 +203,10 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 	}
 	else if(cmd_ == "range"){
 		if(args_.size() >= 2){
-			fitRangeLow = strtoul(args_.at(0).c_str(), NULL, 0);
-			fitRangeHigh = strtoul(args_.at(1).c_str(), NULL, 0);
+			fitRangeLow = strtol(args_.at(0).c_str(), NULL, 0);
+			fitRangeHigh = strtol(args_.at(1).c_str(), NULL, 0);
 		}
-		std::cout << msgHeader << "Using fitting range of [maxIndex-" << fitRangeLow << ", maxIndex+" << fitRangeHigh << "].\n";
+		std::cout << msgHeader << "Using fitting range of [maxIndex+" << fitRangeLow << ", maxIndex+" << fitRangeHigh << "].\n";
 	}
 	else if(cmd_ == "thresh"){
 		if(args_.size() >= 1){
@@ -215,9 +222,9 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		if(analyzer == FIT)
 			std::cout << msgHeader << "Error! Unable to perform auto-analysis for fitting analyzer.\n";
 		
-		float startValue[3] = {0, 0, 0};
-		float stopValue[3] = {0, 0, 0};
-		float stepSize[3] = {0, 0, 0};
+		double startValue[3] = {0, 0, 0};
+		double stopValue[3] = {0, 0, 0};
+		double stepSize[3] = {0, 0, 0};
 		int numSteps[3] = {1, 1, 1};
 
 		std::string userInput, userArgs;
@@ -225,7 +232,7 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		for(int i = 0; i < (analyzer == POLY ? 1 : 3); i++){
 			while(true){
 				userSplitArgs.clear();
-				std::cout << msgHeader << "Enter par" << i+1 << " start stop and steps:\n"; 
+				std::cout << msgHeader << "Enter par" << i+1 << " start stop and step size:\n"; 
 				GetTerminal()->flush();
 				userInput = GetTerminal()->GetCommand(userArgs);
 				split_str(userArgs, userSplitArgs);
@@ -233,12 +240,15 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 					std::cout << "Error! Invalid number of arguments. Expected 3, but received only " << userSplitArgs.size()+1 << ".\n";
 					continue;
 				}
-				startValue[i] = strtof(userInput.c_str(), NULL); 
-				stopValue[i] = strtof(userSplitArgs[0].c_str(), NULL); 
-				numSteps[i] = strtol(userSplitArgs[1].c_str(), NULL, 10); 
-				stepSize[i] = (stopValue[i]-startValue[i])/numSteps[i];
-				if(numSteps[i] > 0) break;
-				std::cout << msgHeader << "Error! Invalid number of steps (" << numSteps[i] << ").\n";
+				startValue[i] = strtod(userInput.c_str(), NULL); 
+				stopValue[i] = strtod(userSplitArgs[0].c_str(), NULL); 
+				stepSize[i] = strtod(userSplitArgs[1].c_str(), NULL);
+				numSteps[i] = ((stopValue[i]-startValue[i])/stepSize[i] + 1);
+				if((stopValue[i] != startValue[i]) && numSteps[i] == 1){
+					std::cout << msgHeader << "How the hell does this happen???\n";
+					numSteps[i]++; // What the hell???
+				}
+				break;
 			}
 		}
 
@@ -283,10 +293,10 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		for(int i = 0; i < numSteps[0]; i++){ // over par1
 			for(int j = 0; j < numSteps[1]; j++){ // over par2
 				for(int k = 0; k < numSteps[2]; k++){ // over par3
-					par1 = startValue[0] + i*stepSize[0] + stepSize[0]/2;
+					par1 = startValue[0] + i*stepSize[0];
 					if(analyzer == CFD){
-						par2 = startValue[1] + j*stepSize[1] + stepSize[1]/2;
-						par3 = startValue[2] + k*stepSize[2] + stepSize[2]/2;
+						par2 = startValue[1] + j*stepSize[1];
+						par3 = startValue[2] + k*stepSize[2];
 					}
 					for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
 						if(!iter->Analyze(tdiff, analyzer, par1, par2, par3)) continue;
@@ -359,7 +369,7 @@ void timingScanner::CmdHelp(const std::string &prefix_/*=""*/){
 	std::cout << "   write [filename]                     - Write time differences to an output file.\n";
 	std::cout << "   range [low] [high]                   - Set the range to use for fits [maxIndex-low, maxIndex+high].\n";
 	std::cout << "   thresh [start] [stop]                - Set the minimum TQDC threshold to use (default=0).\n";
-	std::cout << "   auto <start> <stop> <steps> [fname]  - Automatically vary par1 from start to stop.\n";
+	std::cout << "   auto [fname]                         - Automatically vary par1 from start to stop.\n";
 }
 
 /** ArgHelp is used to allow a derived class to add a command line option
@@ -448,53 +458,71 @@ bool timingScanner::AddEvent(XiaData *event_){
 bool timingScanner::ProcessEvents(){
 	if(tofPairs.size() >= minimumTraces){ return false; }
 
-	// Process all of the events added so far.
-	ChannelEvent *currentEvent;
-	ChannelEvent *nextEvent;
-	ChannelEvent *start;
-	ChannelEvent *stop;
-	bool goodEvent;
-	while(!unsorted.empty()){
-		goodEvent = false;
+	unsigned short idL;
+	unsigned short idR;
 
-		currentEvent = unsorted.front();
-		unsorted.pop_front();
+	std::vector<ChannelEvent*> lefts, rights;
+
+	ChannelEvent *pair1, *pair2;
 	
-		// Check for the next event.	
-		if(unsorted.empty()){
-			delete currentEvent;
+	sort(unsorted.begin(), unsorted.end(), &XiaData::compareTime);
+
+	// Search for pixie channel pairs.	
+	while(!unsorted.empty()){
+		if(unsorted.size() <= 1){
+			unsorted.pop_front();
 			break;
 		}
 
-		nextEvent = unsorted.front();
+		pair1 = unsorted.front();
+		idL = pair1->getID();
 
-		if(currentEvent->getID() == startID){
-			if(nextEvent->getID() == stopID){
-				goodEvent = true;
-				start = currentEvent;
-				stop = nextEvent;
+		// Find this event's neighbor.
+		for(std::deque<ChannelEvent*>::iterator iter = unsorted.begin()+1; iter != unsorted.end(); ++iter){
+			pair2 = (*iter);
+			idR = pair2->getID();
+			if(idL == startID){ // start
+				if(idR == stopID){
+					lefts.push_back(pair1);
+					rights.push_back(pair2);
+					unsorted.erase(iter);
+					break;
+				}
+			}
+			else{ // stop
+				if(idL == startID){
+					lefts.push_back(pair2);
+					rights.push_back(pair1);
+					unsorted.erase(iter);
+					break;
+				}
 			}
 		}
-		else if(nextEvent->getID() == startID){
-			goodEvent = true;
-			start = nextEvent;
-			stop = currentEvent;
-		}
-	
-		if(goodEvent){
-			start->ComputeBaseline();
-			stop->ComputeBaseline();
-			start->IntegratePulse(start->max_index - fitRangeLow, start->max_index + fitRangeHigh);
-			stop->IntegratePulse(stop->max_index - fitRangeLow, stop->max_index + fitRangeHigh);
-			if(start->qdc >= startThresh && stop->qdc >= stopThresh)
-				tofPairs.push_back(ChanPair(currentEvent, nextEvent));
-			else{
-				delete currentEvent;
-				delete nextEvent;
-			}
-			unsorted.pop_front();
-		}
-		else delete currentEvent;
+
+		unsorted.pop_front();
+	}
+
+	ChannelEvent *current_event_L;
+	ChannelEvent *current_event_R;
+
+	std::vector<ChannelEvent*>::iterator iterL = lefts.begin();
+	std::vector<ChannelEvent*>::iterator iterR = rights.begin();
+
+	// Pick out pairs of channels representing bars.
+	for(; iterL != lefts.end() && iterR != rights.end(); ++iterL, ++iterR){
+		current_event_L = (*iterL);
+		current_event_R = (*iterR);
+
+		// Check that the time and energy values are valid
+		//if(!current_event_L->valid_chan || !current_event_R->valid_chan)
+			//continue; 
+
+		current_event_L->ComputeBaseline();
+		current_event_R->ComputeBaseline();
+		if(current_event_L->maximum >= startThresh && current_event_R->maximum >= stopThresh)
+			tofPairs.push_back(ChanPair(current_event_L, current_event_R));
+		current_event_L->IntegratePulse(current_event_L->max_index + fitRangeLow, current_event_L->max_index + fitRangeHigh);
+		current_event_R->IntegratePulse(current_event_R->max_index + fitRangeLow, current_event_R->max_index + fitRangeHigh);
 	}
 
 	if(tofPairs.size() >= minimumTraces){

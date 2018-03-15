@@ -177,8 +177,8 @@ class timingScanner : public ScanInterface {
 	float par2;
 	float par3;
 
-	unsigned short fitRangeLow;
-	unsigned short fitRangeHigh;
+	short fitRangeLow;
+	short fitRangeHigh;
 
 	double startThresh;
 	double stopThresh;
