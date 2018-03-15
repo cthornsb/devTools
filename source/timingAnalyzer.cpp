@@ -114,7 +114,7 @@ void timingUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), fitRangeLow(-5), fitRangeHigh(10), startThresh(0), stopThresh(0), analyzer(POLY), fitter() {
+timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), fitRangeLow(-5), fitRangeHigh(10), startThresh(0), stopThresh(0), floatingMode(false), analyzer(POLY), fitter() {
 	// Set the fit function x-axis multiplier to the ADC tick size.
 	fitter.SetAxisMultiplier(ADC_TIME_STEP);
 }
@@ -327,6 +327,14 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 
 		std::cout << msgHeader << "Analysis complete!\n";
 	}
+	else if(cmd_ == "float"){
+		floatingMode = !floatingMode;
+		fitter.SetFloatingMode(floatingMode);
+		if(floatingMode)
+			std::cout << msgHeader << "Floating mode ON\n";
+		else
+			std::cout << msgHeader << "Floating mode OFF\n";
+	}
 	else{ return false; } // Unrecognized command.
 
 	return true;
@@ -370,6 +378,7 @@ void timingScanner::CmdHelp(const std::string &prefix_/*=""*/){
 	std::cout << "   range [low] [high]                   - Set the range to use for fits [maxIndex-low, maxIndex+high].\n";
 	std::cout << "   thresh [start] [stop]                - Set the minimum TQDC threshold to use (default=0).\n";
 	std::cout << "   auto [fname]                         - Automatically vary par1 from start to stop.\n";
+	std::cout << "   float                                - Toggle beta and gamma floating mode for pulse fitting.\n";
 }
 
 /** ArgHelp is used to allow a derived class to add a command line option

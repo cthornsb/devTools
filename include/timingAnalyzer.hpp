@@ -183,6 +183,8 @@ class timingScanner : public ScanInterface {
 	double startThresh;
 	double stopThresh;
 
+	bool floatingMode;
+
 	timingAnalyzer analyzer;
 
 	TraceFitter fitter;
