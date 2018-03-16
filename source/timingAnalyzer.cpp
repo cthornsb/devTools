@@ -36,6 +36,8 @@ typedef std::chrono::high_resolution_clock hr_clock;
 
 const double fwhmCoeff = 2*std::sqrt(2*std::log(2));
 
+bool floatingMode = false;
+
 ///////////////////////////////////////////////////////////////////////////////
 // class ChanPair
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,7 +59,17 @@ bool ChanPair::Analyze(double &tdiff, timingAnalyzer analyzer/*=POLY*/, const fl
 	}
 	else if(analyzer == FIT && fitter != NULL){
 		fitter->FitPulse(start);
+		rchi2[0] = fitter->GetFunction()->GetChisquare()/fitter->GetFunction()->GetNDF();
+		if(floatingMode){
+			beta[0] = fitter->GetFunction()->GetParameter(3);
+			gamma[0] = fitter->GetFunction()->GetParameter(4);
+		}
 		fitter->FitPulse(stop);
+		rchi2[1] = fitter->GetFunction()->GetChisquare()/fitter->GetFunction()->GetNDF();
+		if(floatingMode){
+			beta[1] = fitter->GetFunction()->GetParameter(3);
+			gamma[1] = fitter->GetFunction()->GetParameter(4);
+		}
 	}
 
 	// Stop the timer.
@@ -114,7 +126,7 @@ void timingUnpacker::ProcessRawEvent(ScanInterface *addr_/*=NULL*/){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Default constructor.
-timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), fitRangeLow(-5), fitRangeHigh(10), startThresh(0), stopThresh(0), floatingMode(false), analyzer(POLY), fitter() {
+timingScanner::timingScanner() : ScanInterface(), minimumTraces(5000), startID(0), stopID(1), par1(0.5), par2(1), par3(1), fitRangeLow(-5), fitRangeHigh(10), startThresh(0), stopThresh(0), analyzer(POLY), fitter() {
 	// Set the fit function x-axis multiplier to the ADC tick size.
 	fitter.SetAxisMultiplier(ADC_TIME_STEP);
 }
@@ -145,7 +157,7 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 		double tdiff;
 		tdiffs.clear();
 		if(analyzer == FIT){ // Set fit function beta and gamma.
-			!fitter.SetFitRange(fitRangeLow, fitRangeHigh);
+			fitter.SetFitRange(fitRangeLow, fitRangeHigh);
 			fitter.SetBetaGamma(par1, par2);
 		}
 		for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
@@ -329,8 +341,8 @@ bool timingScanner::ExtraCommands(const std::string &cmd_, std::vector<std::stri
 	}
 	else if(cmd_ == "float"){
 		floatingMode = !floatingMode;
-		fitter.SetFloatingMode(floatingMode);
-		if(floatingMode)
+		bool retval = fitter.SetFloatingMode(floatingMode);
+		if(retval)
 			std::cout << msgHeader << "Floating mode ON\n";
 		else
 			std::cout << msgHeader << "Floating mode OFF\n";
@@ -581,7 +593,14 @@ bool timingScanner::Write(const char *fname/*="timing.dat"*/){
 		ofile.close();
 		return false;
 	}
-	ofile << "timeStart\ttimeStop\tphaseStart\tphaseStop\tmaxStart\tmaxStop\ttdiff\n";
+	ofile << "timeStart\ttimeStop\tphaseStart\tphaseStop\tmaxStart\tmaxStop\ttdiff";
+	if(analyzer == FIT){
+		if(floatingMode)
+			ofile << "\tbetaStart\tbetaStop\tgammaStart\tgammaStop";
+		ofile << "\tchi2Start\tchi2Stop";
+	}
+	ofile << std::endl;
+
 	ChannelEvent *start, *stop;
 	for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
 		start = iter->start;
@@ -591,7 +610,14 @@ bool timingScanner::Write(const char *fname/*="timing.dat"*/){
 		if(start->phase < 0 || stop->phase < 0) continue;
 
 		// Write the output.
-		ofile << (unsigned long long)start->time << "\t" << (unsigned long long)stop->time << "\t" << start->phase << "\t" << stop->phase << "\t" << start->max_ADC << "\t" << stop->max_ADC << "\t" << ((stop->time-start->time)*8+(stop->phase-start->phase)*4) << std::endl;
+		ofile << (unsigned long long)start->time << "\t" << (unsigned long long)stop->time << "\t" << start->phase << "\t" << stop->phase << "\t" << start->max_ADC << "\t" << stop->max_ADC << "\t" << ((stop->time-start->time)*8+(stop->phase-start->phase)*4);
+		
+		if(analyzer == FIT){
+			if(floatingMode)
+				ofile << "\t" << iter->beta[0] << "\t" << iter->beta[1] << "\t" << iter->gamma[0] << "\t" << iter->gamma[1];
+			ofile << "\t" << iter->rchi2[0] << "\t" << iter->rchi2[1]; 
+		}
+		ofile << std::endl;
 	}
 	ofile.close();
 	return true;

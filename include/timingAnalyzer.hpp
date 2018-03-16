@@ -23,7 +23,11 @@ class ChanPair{
 
 	double timeTaken;
 
-	ChanPair(ChannelEvent *start_, ChannelEvent *stop_) : start(start_), stop(stop_) { }
+	double beta[2];
+	double gamma[2];
+	double rchi2[2];
+
+	ChanPair(ChannelEvent *start_, ChannelEvent *stop_) : start(start_), stop(stop_), timeTaken(0) { }
 
 	~ChanPair();
 
@@ -182,8 +186,6 @@ class timingScanner : public ScanInterface {
 
 	double startThresh;
 	double stopThresh;
-
-	bool floatingMode;
 
 	timingAnalyzer analyzer;
 
