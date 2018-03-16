@@ -587,19 +587,38 @@ void timingScanner::ClearAll(){
 	tdiffs.clear();
 }
 
-bool timingScanner::Write(const char *fname/*="timing.dat"*/){
-	std::ofstream ofile(fname);
-	if(!ofile.good()){
-		ofile.close();
+bool timingScanner::Write(const char *fname/*="timing.root"*/){
+	TFile *ofile = new TFile(fname, "RECREATE");
+	if(!ofile->IsOpen()){
 		return false;
 	}
-	ofile << "timeStart\ttimeStop\tphaseStart\tphaseStop\tmaxStart\tmaxStop\ttdiff";
+	
+	unsigned long long time[2];
+	double tdiff;
+	double chi2[2];
+	double beta[2];
+	double gamma[2];
+	float phase[2];
+	unsigned short maximum[2];
+	
+	TTree *otree = new TTree("data", "timingAnalyzer tree");
+	otree->Branch("timeStart", &time[0]);
+	otree->Branch("timeStop", &time[1]);
+	otree->Branch("phaseStart", &phase[0]);
+	otree->Branch("phaseStop", &phase[1]);
+	otree->Branch("maxStart", &maximum[0]);
+	otree->Branch("maxStop", &maximum[1]);
 	if(analyzer == FIT){
-		if(floatingMode)
-			ofile << "\tbetaStart\tbetaStop\tgammaStart\tgammaStop";
-		ofile << "\tchi2Start\tchi2Stop";
+		if(floatingMode){
+			otree->Branch("betaStart", &beta[0]);
+			otree->Branch("betaStop", &beta[1]);
+			otree->Branch("gammaStart", &gamma[0]);
+			otree->Branch("gammaStop", &gamma[1]);
+		}
+		otree->Branch("chi2Start", &chi2[0]);
+		otree->Branch("chi2Stop", &chi2[1]);
 	}
-	ofile << std::endl;
+	otree->Branch("tdiff", &tdiff);
 
 	ChannelEvent *start, *stop;
 	for(std::deque<ChanPair>::iterator iter = tofPairs.begin(); iter != tofPairs.end(); ++iter){
@@ -609,17 +628,33 @@ bool timingScanner::Write(const char *fname/*="timing.dat"*/){
 		// Check for bad phases.
 		if(start->phase < 0 || stop->phase < 0) continue;
 
-		// Write the output.
-		ofile << (unsigned long long)start->time << "\t" << (unsigned long long)stop->time << "\t" << start->phase << "\t" << stop->phase << "\t" << start->max_ADC << "\t" << stop->max_ADC << "\t" << ((stop->time-start->time)*8+(stop->phase-start->phase)*4);
-		
+		// Set all values.
+		time[0] = (unsigned long long)start->time;
+		time[1] = (unsigned long long)stop->time;
+		phase[0] = start->phase;
+		phase[1] = stop->phase;
+		maximum[0] = start->max_ADC;
+		maximum[1] = stop->max_ADC;
+		tdiff = ((stop->time-start->time)*8+(stop->phase-start->phase)*4);
 		if(analyzer == FIT){
-			if(floatingMode)
-				ofile << "\t" << iter->beta[0] << "\t" << iter->beta[1] << "\t" << iter->gamma[0] << "\t" << iter->gamma[1];
-			ofile << "\t" << iter->rchi2[0] << "\t" << iter->rchi2[1]; 
+			for(int i = 0; i < 2; i++){
+				if(floatingMode){
+					beta[i] = iter->beta[i];
+					gamma[i] = iter->gamma[i];
+				}
+				chi2[i] = iter->rchi2[i];
+			}
 		}
-		ofile << std::endl;
+
+		// Fill the tree.
+		otree->Fill();
 	}
-	ofile.close();
+	
+	ofile->cd();
+	otree->Write();
+	ofile->Close();
+	delete ofile;
+
 	return true;
 }
 
