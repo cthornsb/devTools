@@ -216,6 +216,7 @@ class scopeScanner : public ScanInterface {
 	bool running;
 	bool performFit_;
 	bool performCfd_;
+	bool performPolyCfd_;
 	bool tdiffMode_;
   
 	double currTraceTime_;
@@ -229,6 +230,7 @@ class scopeScanner : public ScanInterface {
 	TApplication *rootapp; ///< Root application pointer.
 	TCanvas *canvas; ///< The main plotting canvas.
 	TGraph *graph;
+	TGraph *cfdGraph;
 	TLine *cfdLine;
 	TBox *cfdBox;
 	TF1 *cfdPol3;

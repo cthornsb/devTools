@@ -91,6 +91,7 @@ scopeScanner::scopeScanner(int mod /*= 0*/, int chan/*=0*/) : ScanInterface() {
 	running = true;
 	performFit_ = false;
 	performCfd_ = false;
+	performPolyCfd_ = false;
 	tdiffMode_ = false;
 	currTraceTime_ = 0;
 	prevTraceTime_ = 0;
@@ -127,6 +128,7 @@ scopeScanner::scopeScanner(int mod /*= 0*/, int chan/*=0*/) : ScanInterface() {
 	cfdPol3->SetLineColor(kGreen+1);
 	cfdPol2 = new TF1("cfdPol2", "pol2");
 	cfdPol2->SetLineColor(kMagenta+1);
+	cfdGraph = NULL;
 	
 	hist = new TH2F("hist","",256,0,1,256,0,1);
 
@@ -247,42 +249,82 @@ void scopeScanner::Plot(){
 
 		graph->Draw("AP0");
 
+		ChannelEvent *evt = chanEvents_.front();
+
 		if(performCfd_){
-			ChannelEvent *evt = chanEvents_.front();
-
 			// Find the zero-crossing of the cfd waveform.
-			float cfdCrossing = evt->AnalyzeCFD(cfdF_);
-			
-			// Draw the cfd crossing line.
-			cfdLine->DrawLine(cfdCrossing*ADC_TIME_STEP, userZoomVals[1][0], cfdCrossing*ADC_TIME_STEP, userZoomVals[1][1]);
-			
-			// Draw the 3rd order polynomial.
-			cfdPol3->SetParameter(0, evt->cfdPar[0]);
-			cfdPol3->SetParameter(1, evt->cfdPar[1]/ADC_TIME_STEP);
-			cfdPol3->SetParameter(2, evt->cfdPar[2]/std::pow(ADC_TIME_STEP, 2.0));
-			cfdPol3->SetParameter(3, evt->cfdPar[3]/std::pow(ADC_TIME_STEP, 3.0));
-			// Find the pulse maximum by fitting with a third order polynomial.
-			if(evt->adcTrace[evt->max_index-1] >= evt->adcTrace[evt->max_index+1]) // Favor the left side of the pulse.
-				cfdPol3->SetRange((evt->max_index - 2)*ADC_TIME_STEP, (evt->max_index + 1)*ADC_TIME_STEP);
-			else // Favor the right side of the pulse.
-				cfdPol3->SetRange((evt->max_index - 1)*ADC_TIME_STEP, (evt->max_index + 2)*ADC_TIME_STEP);
-			cfdPol3->Draw("SAME");
-			
-			// Draw the 2nd order polynomial.
-			cfdPol2->SetParameter(0, evt->cfdPar[4]);
-			cfdPol2->SetParameter(1, evt->cfdPar[5]/ADC_TIME_STEP);
-			cfdPol2->SetParameter(2, evt->cfdPar[6]/std::pow(ADC_TIME_STEP, 2.0));
-			cfdPol2->SetRange((evt->cfdIndex - 1)*ADC_TIME_STEP, (evt->cfdIndex + 1)*ADC_TIME_STEP);
-			cfdPol2->Draw("SAME");
+			float cfdCrossing = evt->AnalyzeCFD(cfdF_, cfdD_, cfdL_);
+		
+			if(cfdCrossing > 0){
+				// Draw the CFD waveform.
+				if(cfdGraph) delete cfdGraph;
+				cfdGraph = new TGraph(graph->GetN());
+				cfdGraph->SetLineColor(kRed);
+				for(int i = 0; i < graph->GetN(); i++){
+					cfdGraph->SetPoint(i, x_vals[i], evt->cfdvals[i]+evt->baseline);
+				}
+				cfdGraph->Draw("LSAME");
 
-			if(tdiffMode_){
-				currTraceTime_ = evt->time*8 + cfdCrossing*4;
-				std::cout << " tdiff = " << currTraceTime_-prevTraceTime_ << " ns.\n";
-				prevTraceTime_ = currTraceTime_;
+				// Draw the cfd crossing line.
+				cfdLine->SetX1(cfdCrossing*ADC_TIME_STEP);
+				cfdLine->SetY1(userZoomVals[1][0]);
+				cfdLine->SetX2(cfdCrossing*ADC_TIME_STEP);
+				cfdLine->SetY2(userZoomVals[1][1]);
+				cfdLine->Draw();
+
+				if(tdiffMode_){
+					currTraceTime_ = evt->time*8 + cfdCrossing*4;
+					std::cout << " tdiff = " << currTraceTime_-prevTraceTime_ << " ns.\n";
+					prevTraceTime_ = currTraceTime_;
+				}
+			}
+		}
+		else if(performPolyCfd_){
+			// Find the zero-crossing of the cfd waveform.
+			float cfdCrossing = evt->AnalyzePolyCFD(cfdF_);
+
+			if(cfdCrossing > 0){
+				// Draw the cfd crossing line.
+				cfdLine->SetX1(cfdCrossing*ADC_TIME_STEP);
+				cfdLine->SetY1(userZoomVals[1][0]);
+				cfdLine->SetX2(cfdCrossing*ADC_TIME_STEP);
+				cfdLine->SetY2(userZoomVals[1][1]);
+				cfdLine->Draw();
+
+				// Draw the 3rd order polynomial.
+				cfdPol3->SetParameter(0, evt->cfdPar[0]);
+				cfdPol3->SetParameter(1, evt->cfdPar[1]/ADC_TIME_STEP);
+				cfdPol3->SetParameter(2, evt->cfdPar[2]/std::pow(ADC_TIME_STEP, 2.0));
+				cfdPol3->SetParameter(3, evt->cfdPar[3]/std::pow(ADC_TIME_STEP, 3.0));
+				// Find the pulse maximum by fitting with a third order polynomial.
+				if(evt->adcTrace[evt->max_index-1] >= evt->adcTrace[evt->max_index+1]) // Favor the left side of the pulse.
+					cfdPol3->SetRange((evt->max_index - 2)*ADC_TIME_STEP, (evt->max_index + 1)*ADC_TIME_STEP);
+				else // Favor the right side of the pulse.
+					cfdPol3->SetRange((evt->max_index - 1)*ADC_TIME_STEP, (evt->max_index + 2)*ADC_TIME_STEP);
+				cfdPol3->Draw("SAME");
+				
+				// Draw the 2nd order polynomial.
+				cfdPol2->SetParameter(0, evt->cfdPar[4]);
+				cfdPol2->SetParameter(1, evt->cfdPar[5]/ADC_TIME_STEP);
+				cfdPol2->SetParameter(2, evt->cfdPar[6]/std::pow(ADC_TIME_STEP, 2.0));
+
+				// Need some logic here
+				if(cfdCrossing-floor(cfdCrossing) >= 0.5) // Favor the right.
+					cfdPol2->SetRange((evt->cfdIndex - 1)*ADC_TIME_STEP, (evt->cfdIndex + 1)*ADC_TIME_STEP);
+				else // Favor the left.
+					cfdPol2->SetRange((evt->cfdIndex - 2)*ADC_TIME_STEP, (evt->cfdIndex)*ADC_TIME_STEP);
+
+				cfdPol2->Draw("SAME");
+
+				if(tdiffMode_){
+					currTraceTime_ = evt->time*8 + cfdCrossing*4;
+					std::cout << " tdiff = " << currTraceTime_-prevTraceTime_ << " ns.\n";
+					prevTraceTime_ = currTraceTime_;
+				}
 			}
 		}
 
-		if(performFit_) fitter.FitPulse(graph, chanEvents_.front(), "QMER");
+		if(performFit_) fitter.FitPulse(graph, evt, "QMER");
 	}
 	else { //For multiple events with make a 2D histogram and plot the profile on top.
 		double cfdAvg = 0.0;
@@ -301,7 +343,16 @@ void scopeScanner::Plot(){
 
 			if(performCfd_){
 				// Find the zero-crossing of the cfd waveform.
-				float cfdCrossing = evt->AnalyzeCFD(cfdF_);
+				float cfdCrossing = evt->AnalyzeCFD(cfdF_, cfdD_, cfdL_);
+				if(cfdCrossing > 0){ // Handle failed CFD.
+					cfdAvg += cfdCrossing;
+					cfdStdDev += cfdCrossing * cfdCrossing;			
+				}
+				else{ numCfdWaveforms--; }
+			}
+			else if(performPolyCfd_){
+				// Find the zero-crossing of the cfd waveform.
+				float cfdCrossing = evt->AnalyzePolyCFD(cfdF_);
 				if(cfdCrossing > 0){ // Handle failed CFD.
 					cfdAvg += cfdCrossing;
 					cfdStdDev += cfdCrossing * cfdCrossing;			
@@ -310,7 +361,7 @@ void scopeScanner::Plot(){
 			}
 		}
 
-		if(performCfd_){
+		if(performCfd_ || performPolyCfd_){
 			// Calculate the average phase obtained from CFD.
 			cfdAvg = cfdAvg / numCfdWaveforms;
 
@@ -347,7 +398,7 @@ void scopeScanner::Plot(){
 
 		if(performFit_) fitter.FitPulse(prof, chanEvents_.front(), "QMER");
 
-		if(!performCfd_){
+		if(!performCfd_ && !performPolyCfd_){
 			hist->SetStats(false);
 			hist->Draw("COLZ");		
 			prof->Draw("SAMES");
@@ -363,8 +414,12 @@ void scopeScanner::Plot(){
 			prof->GetYaxis()->SetRangeUser(userZoomVals[1][0], userZoomVals[1][1]);
 
 			// Draw the cfd crossing line.
-			cfdLine->DrawLine(cfdAvg*ADC_TIME_STEP, userZoomVals[1][0], cfdAvg*ADC_TIME_STEP, userZoomVals[1][1]);
-			
+			cfdLine->SetX1(cfdAvg*ADC_TIME_STEP);
+			cfdLine->SetY1(userZoomVals[1][0]);
+			cfdLine->SetX2(cfdAvg*ADC_TIME_STEP);
+			cfdLine->SetY2(userZoomVals[1][1]);
+			cfdLine->Draw();
+	
 			if(this->IsVerbose())
 				std::cout << " CFD PHASE ANALYSIS: meanPhase = " << cfdAvg*ADC_TIME_STEP << " ns, stdDev = " << cfdStdDev*ADC_TIME_STEP << " ns FWHM.\n";
 
@@ -683,6 +738,25 @@ bool scopeScanner::ExtraCommands(const std::string &cmd_, std::vector<std::strin
 		if(performCfd_)
 			std::cout << msgHeader << "Enabling cfd analysis with F=" << cfdF_ << ", D=" << cfdD_ << ", L=" << cfdL_ << std::endl;
 	}
+	else if (cmd_ == "poly") {
+		cfdF_ = 0.5;
+		if (args_.empty()) { performPolyCfd_ = true; }
+		else if (args_.size() == 1) { 
+			if(args_.at(0) == "off"){ // Turn cfd analysis off.
+				if(performPolyCfd_){
+					std::cout << msgHeader << "Disabling polynomial cfd analysis.\n"; 
+					performPolyCfd_ = false;
+				}
+				else{ std::cout << msgHeader << "Polynomial cfd is not enabled.\n"; }
+			}
+			else{
+				cfdF_ = atof(args_.at(0).c_str());
+				performPolyCfd_ = true;
+			}
+		}
+		if(performPolyCfd_)
+			std::cout << msgHeader << "Enabling polynomial cfd analysis with F=" << cfdF_ << std::endl;
+	}
 	else if (cmd_ == "avg") {
 		if (args_.size() == 1) {
 			numAvgWaveforms_ = atoi(args_.at(0).c_str());
@@ -700,39 +774,50 @@ bool scopeScanner::ExtraCommands(const std::string &cmd_, std::vector<std::strin
 	else if(cmd_ == "save") {
 		if (args_.size() >= 1) {
 			std::string saveFile = args_.at(0);
-			std::string nameSuffix = "";
-			if(args_.size() > 1)
-				nameSuffix = args_.at(1);
-
 			if(just_plotted == 1){
 				// Save the TGraph to a file.
-				TFile f(saveFile.c_str(), "UPDATE");
-				graph->Clone(("trace"+nameSuffix).c_str())->Write();
-				std::cout << msgHeader << "Wrote \"trace" << nameSuffix << "\" to " << saveFile << std::endl;
+				TFile f(saveFile.c_str(), "RECREATE");
+				graph->Write("trace");
+				std::cout << msgHeader << "Wrote \"trace\" to " << saveFile << std::endl;
 				if(performFit_){
-					fitter.GetFunction()->Clone(("func"+nameSuffix).c_str())->Write();
-					std::cout << msgHeader << "Wrote \"func" << nameSuffix << "\" to " << saveFile << std::endl;				
+					fitter.GetFunction()->Write("func");
+					std::cout << msgHeader << "Wrote \"func\" to " << saveFile << std::endl;				
 				}
 				if(performCfd_){
-					cfdLine->Clone(("cfdLine"+nameSuffix).c_str())->Write();
-					std::cout << msgHeader << "Wrote \"cfdLine" << nameSuffix << "\" to " << saveFile << std::endl;
+					cfdGraph->Write("cfdGraph");
+					cfdLine->Write("cfdLine");
+					std::cout << msgHeader << "Wrote \"cfd(Line, Graph)\" to " << saveFile << std::endl;
 				}
+				if(performPolyCfd_){
+					cfdLine->Write("cfdPolLine");
+					cfdPol2->Write("cfdPol2");
+					cfdPol3->Write("cfdPol3");
+					std::cout << msgHeader << "Wrote \"cfd(PolLine, Pol2, Pol3)\" to " << saveFile << std::endl;
+				}
+
 				f.Close();
 			}
 			else if(just_plotted > 0){
 				// Save the TH2F and TProfile to a file.
-				TFile f(saveFile.c_str(), "UPDATE");
-				hist->Clone(("hist"+nameSuffix).c_str())->Write();
-				prof->Clone(("prof"+nameSuffix).c_str())->Write();
-				std::cout << msgHeader << "Wrote \"hist" << nameSuffix << "\" and \"prof" << nameSuffix << "\" to " << saveFile << std::endl;
+				TFile f(saveFile.c_str(), "RECREATE");
+				hist->Clone("hist")->Write();
+				prof->Clone("prof")->Write();
+				std::cout << msgHeader << "Wrote \"hist\" and \"prof\" to " << saveFile << std::endl;
 				if(performFit_){
-					fitter.GetFunction()->Clone(("func"+nameSuffix).c_str())->Write();
-					std::cout << msgHeader << "Wrote \"func" << nameSuffix << "\" to " << saveFile << std::endl;				
+					fitter.GetFunction()->Clone("func")->Write();
+					std::cout << msgHeader << "Wrote \"func\" to " << saveFile << std::endl;				
 				}
 				if(performCfd_){
-					cfdLine->Clone(("cfdLine"+nameSuffix).c_str())->Write();
-					cfdBox->Clone(("cfdBox"+nameSuffix).c_str())->Write();
-					std::cout << msgHeader << "Wrote \"cfdLine" << nameSuffix << "\" and \"" << nameSuffix << "\" to " << saveFile << std::endl;
+					cfdLine->Write("cfdLine");
+					cfdBox->Write("cfdBox");
+					std::cout << msgHeader << "Wrote \"cfdLine\" and \"\" to " << saveFile << std::endl;
+				}
+				if(performPolyCfd_){
+					cfdLine->Write("cfdLine");
+					cfdPol2->Write("cfdPol2");
+					cfdPol3->Write("cfdPol3");
+					cfdBox->Write("cfdBox");
+					std::cout << msgHeader << "Wrote \"cfdLine\" and \"\" to " << saveFile << std::endl;
 				}
 				f.Close();
 				
