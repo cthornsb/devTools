@@ -279,7 +279,7 @@ void scopeScanner::Plot(){
 				}
 			}
 		}
-		else if(performPolyCfd_){
+		if(performPolyCfd_){
 			// Find the zero-crossing of the cfd waveform.
 			float cfdCrossing = evt->AnalyzePolyCFD(cfdF_);
 
