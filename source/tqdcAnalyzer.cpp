@@ -76,7 +76,7 @@ bool tqdcScanner::ExtraCommands(const std::string &cmd_, std::vector<std::string
 		tqdcs.clear();
 		for(std::deque<ChannelEvent*>::iterator iter = unsorted.begin(); iter != unsorted.end(); ++iter){
 			(*iter)->ComputeBaseline();
-			tqdcs.push_back((*iter)->IntegratePulse((*iter)->max_index-integrationRangeLow, (*iter)->max_index+integrationRangeHigh, false));
+			tqdcs.push_back((*iter)->IntegratePulse((*iter)->max_index-integrationRangeLow, (*iter)->max_index+integrationRangeHigh));
 		}
 		ProcessTQDC();
 	}
@@ -85,8 +85,8 @@ bool tqdcScanner::ExtraCommands(const std::string &cmd_, std::vector<std::string
 		tqdcs2.clear();
 		for(std::deque<ChannelEvent*>::iterator iter = unsorted.begin(); iter != unsorted.end(); ++iter){
 			(*iter)->ComputeBaseline();
-			tqdcs.push_back((*iter)->IntegratePulse((*iter)->max_index-integrationRangeLow, (*iter)->max_index+integrationRangeHigh, false));
-			tqdcs2.push_back((*iter)->IntegratePulse((*iter)->max_index-shortIntegralRangeLow, (*iter)->max_index+shortIntegralRangeHigh, true));
+			tqdcs.push_back((*iter)->IntegratePulse((*iter)->max_index-integrationRangeLow, (*iter)->max_index+integrationRangeHigh));
+			tqdcs2.push_back((*iter)->IntegratePulse2((*iter)->max_index-shortIntegralRangeLow, (*iter)->max_index+shortIntegralRangeHigh));
 		}
 		ProcessTQDC();
 	}
