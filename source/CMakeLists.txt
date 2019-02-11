@@ -38,6 +38,13 @@ if(${BUILD_SCOPE})
 	install(TARGETS scope DESTINATION bin)
 endif()
 
+if(${BUILD_TIMING})
+	#Build timing executable.
+	add_executable(timing timing.cpp timingParameters.cpp parameter.cpp)
+	target_link_libraries(timing ${SimpleScan_SCAN_LIB} ${ROOT_LIBRARIES})
+	install(TARGETS timing DESTINATION bin)
+endif()
+
 if(${HEAD_READER})
 	# Install headReader executable.
 	add_executable(headReader headReader.cpp)

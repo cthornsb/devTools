@@ -53,6 +53,7 @@ option(ANALYZERS "Build and install high-res timing and TQDC analyzers." OFF)
 option(LDF_FIXER "Build and install ldf buffer repair program." OFF)
 option(HEX_READER "Build and install hexadecimal reader program." ON)
 option(BUILD_SCOPE "Build and install Pixie16 trace viewer." OFF)
+option(BUILD_TIMING "Build and install logic timing analysis program." OFF)
 option(HEAD_READER "Build and install ldf/pld header reader program." ON)
 
 #------------------------------------------------------------------------------
@@ -65,13 +66,11 @@ find_package (SimpleScan REQUIRED)
 include_directories(${SimpleScan_INCLUDE_DIR})
 mark_as_advanced(SimpleScan_SCAN_LIB SimpleScan_OPT_LIB)
 
-if (EVENT_READER)
-	#Find ROOT install.
-	find_package (ROOT REQUIRED)
-	mark_as_advanced(FORCE GENREFLEX_EXECUTABLE ROOTCINT_EXECUTABLE ROOT_CONFIG_EXECUTABLE)
-	include_directories(${ROOT_INCLUDE_DIR})
-	link_directories(${ROOT_LIBRARY_DIR})
-endif (EVENT_READER)
+#Find ROOT install.
+find_package (ROOT REQUIRED)
+mark_as_advanced(FORCE GENREFLEX_EXECUTABLE ROOTCINT_EXECUTABLE ROOT_CONFIG_EXECUTABLE)
+include_directories(${ROOT_INCLUDE_DIR})
+link_directories(${ROOT_LIBRARY_DIR})
 
 set(TOP_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
